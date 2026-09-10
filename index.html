@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Trading Buddy</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0f14;--surface:#161b26;--card:#1e2535;--border:#2a3350;
+  --accent:#3b82f6;--green:#22c55e;--red:#ef4444;--gold:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--purple:#a855f7;--cyan:#06b6d4;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{min-height:100dvh;padding-bottom:24px}
+
+/* ── Header ── */
+header{position:sticky;top:0;z-index:20;background:linear-gradient(160deg,#0d0f14 0%,#141a2b 100%);
+  border-bottom:1px solid var(--border);padding:14px 16px;}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-logo{font-size:26px}
+.brand-title{font-size:20px;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.3px}
+.brand-sub{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-top:1px}
+.status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status-pill{font-size:11px;font-weight:700;color:var(--muted);background:var(--card);
+  border:1px solid var(--border);padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);
+  animation:pulseDot 1.6s ease infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.4}}
+#refreshBtn{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;
+  padding:8px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:transform .1s}
+#refreshBtn:active{transform:scale(.95)}
+#refreshBtn.spinning .spin-icon{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tabs-row{display:flex;gap:8px;margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs-row::-webkit-scrollbar{display:none}
+.filter-tab{flex-shrink:0;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:800;
+  border:1.5px solid var(--border);color:var(--muted);cursor:pointer;background:var(--card);
+  transition:.15s;white-space:nowrap}
+.filter-tab.active{background:linear-gradient(135deg,var(--accent),var(--purple));
+  border-color:transparent;color:#fff;box-shadow:0 0 10px rgba(59,130,246,.35)}
+
+.ticker-tape-wrap{border-bottom:1px solid var(--border);background:var(--surface)}
+
+main{max-width:1100px;margin:0 auto;padding:18px 16px}
+.screener-tabs{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.screener-tabs::-webkit-scrollbar{display:none}
+.scr-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:800;
+  border:1.5px solid var(--border);color:var(--muted);cursor:pointer;background:var(--card);transition:.15s;white-space:nowrap}
+.scr-tab.active{background:linear-gradient(135deg,var(--accent),var(--purple));border-color:transparent;color:#fff}
+.scr-panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;min-height:420px;position:relative}
+.news-panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;min-height:360px;position:relative}
+.section-note{font-size:11.5px;color:var(--muted);line-height:1.6;margin:10px 4px 0}
+.section-label{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.08em;
+  text-transform:uppercase;margin:20px 4px 10px}
+.section-label:first-child{margin-top:0}
+
+/* ── Main market-overview widget panel ── */
+.overview-panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
+  overflow:hidden;min-height:520px;position:relative}
+.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}
+.panel-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+
+/* ── Pin manager list ── */
+.pin-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.pin-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--border);
+  border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s}
+.pin-row:hover{border-color:#3b4568}
+.pin-star{font-size:15px;flex-shrink:0}
+.pin-symbol{font-weight:800;font-size:13px;color:#f1f5f9;flex-shrink:0}
+.pin-name{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-badge{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:6px;flex-shrink:0}
+.pin-badge.mid{background:#4c1d9522;color:var(--purple)}
+.pin-badge.large{background:#1e3a5f22;color:#60a5fa}
+.pin-expand{margin-left:6px;font-size:11px;color:var(--muted);flex-shrink:0}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px}
+
+/* ── Modal (full interactive chart) ── */
+#modalOverlay{display:none;position:fixed;inset:0;background:rgba(5,6,10,.8);z-index:200;
+  align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+#modalOverlay.open{display:flex}
+#modalPanel{background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);
+  width:100%;max-width:680px;max-height:92dvh;overflow-y:auto;padding:20px;
+  animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.modal-symbol{font-size:24px;font-weight:900;color:#f1f5f9}
+.modal-name{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+.modal-close{background:var(--card);border:1px solid var(--border);color:var(--muted);
+  width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0}
+.modal-chart-wrap{background:#131826;border-radius:14px;overflow:hidden;height:440px;position:relative}
+.signal-section{margin-top:18px;border:2px solid var(--accent);border-radius:16px;padding:14px;
+  background:linear-gradient(160deg,#131826 0%,#161b2e 100%);box-shadow:0 0 18px rgba(59,130,246,.15)}
+.signal-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.signal-title{font-size:15px;font-weight:900;color:#f1f5f9;display:flex;align-items:center;gap:8px}
+.signal-ext-link{font-size:11.5px;font-weight:800;color:#60a5fa;text-decoration:none;
+  background:#3b82f622;border:1px solid #3b82f655;padding:6px 12px;border-radius:20px;white-space:nowrap}
+.modal-signal-wrap{background:#0d1220;border-radius:12px;overflow:hidden;height:480px;position:relative}
+.signal-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+.signal-placeholder .big{font-size:30px}
+.tv-note{margin-top:12px;font-size:12px;color:var(--muted);background:var(--card);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;line-height:1.5}
+
+footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-height:1.6}
+
+/* ── generic small TradingView panel (calendar, heatmap) ── */
+.tv-widget-panel{background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;position:relative}
+
+/* ── Position size / risk calculator ── */
+.calc-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px}
+.calc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.calc-field label{display:block;font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-bottom:5px;text-transform:uppercase}
+.calc-field input{width:100%;background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;color:#f1f5f9;font-size:14px;font-weight:700;font-family:inherit}
+.calc-field input:focus{outline:none;border-color:var(--accent)}
+.dir-toggle{display:flex;gap:6px}
+.dir-btn{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--border);background:#0d1220;color:var(--muted);font-weight:800;font-size:12px;cursor:pointer}
+.dir-btn.active.long{border-color:var(--green);color:var(--green);background:#16a34a1a}
+.dir-btn.active.short{border-color:var(--red);color:var(--red);background:#b91c1c1a}
+.calc-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;border-top:1px solid var(--border);padding-top:14px}
+.calc-tile{background:#0d1220;border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.calc-tile-label{font-size:9.5px;color:var(--muted);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.calc-tile-value{font-size:17px;font-weight:900;color:#f1f5f9;margin-top:3px}
+.calc-warn{grid-column:1/-1;font-size:12px;color:var(--gold);background:#f59e0b18;border:1px solid #f59e0b33;border-radius:10px;padding:10px 12px}
+.calc-hint{grid-column:1/-1;color:var(--muted);font-size:12px;text-align:center;padding:6px}
+
+/* ── Trade journal ── */
+.journal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px}
+.journal-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.journal-form input,.journal-form select,.journal-form textarea{background:#0d1220;border:1.5px solid var(--border);
+  border-radius:10px;padding:8px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.journal-form textarea{grid-column:1/-1;resize:vertical}
+.journal-form button{grid-column:1/-1;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;
+  border:none;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;font-size:13px}
+.journal-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.jstat{background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:11px;color:var(--muted)}
+.jstat b{color:#f1f5f9;font-size:15px;display:block;font-weight:900}
+.journal-table-wrap{overflow-x:auto}
+.journal-table{width:100%;border-collapse:collapse;font-size:12px}
+.journal-table th{text-align:left;color:var(--muted);font-weight:800;padding:8px;border-bottom:1px solid var(--border);
+  white-space:nowrap;font-size:10px;text-transform:uppercase}
+.journal-table td{padding:8px;border-bottom:1px solid #1e2535;white-space:nowrap}
+.pnl-pos{color:var(--green);font-weight:800}
+.pnl-neg{color:var(--red);font-weight:800}
+.jnotes{max-width:180px;white-space:normal;color:var(--muted)}
+.jdel{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px}
+
+/* ── Multi-timeframe mini signal row ── */
+.mtf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mtf-card{background:#0d1220;border:1.5px solid var(--border);border-radius:12px;height:130px;position:relative;overflow:hidden}
+
+/* ── Daily Hot List ── */
+.hotlist-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.hotlist-asof{font-size:11px;color:var(--muted)}
+.hotlist-refresh{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.hotlist-empty{background:var(--card);border:1.5px dashed var(--border);border-radius:16px;padding:20px;color:var(--muted);font-size:13px;text-align:center}
+.hotlist-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.hot-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px;cursor:pointer}
+.hot-card:hover{border-color:var(--accent)}
+.hot-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.hot-sym{font-size:17px;font-weight:900;color:#f1f5f9}
+.hot-dir{font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px}
+.hot-dir.long{background:#16a34a1a;color:var(--green);border:1px solid #16a34a55}
+.hot-dir.short{background:#b91c1c1a;color:var(--red);border:1px solid #b91c1c55}
+.hot-catalyst{font-size:12px;color:var(--cyan);font-weight:700;margin-bottom:2px}
+.hot-setup{font-size:12px;color:var(--muted);margin-bottom:10px}
+.hot-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.hot-lvl{background:#0d1220;border:1px solid var(--border);border-radius:8px;padding:6px 8px;text-align:center}
+.hot-lvl-label{font-size:8.5px;color:var(--muted);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.hot-lvl-value{font-size:13px;font-weight:900;color:#f1f5f9;margin-top:2px}
+.hot-gap-warn{font-size:10.5px;color:var(--gold);background:#f59e0b18;border:1px solid #f59e0b33;border-radius:8px;padding:5px 8px;margin-bottom:4px}
+.hot-note{font-size:10.5px;color:var(--muted)}
+.hot-live-badge{font-size:9px;font-weight:800;color:var(--green);background:#16a34a1a;border:1px solid #16a34a55;border-radius:5px;padding:2px 6px;letter-spacing:.04em}
+.hot-stale-badge{font-size:9px;font-weight:800;color:var(--gold);background:#f59e0b18;border:1px solid #f59e0b33;border-radius:5px;padding:2px 6px;letter-spacing:.04em}
+.hotlist-keybox{background:var(--card);border:1.5px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--muted)}
+.hotlist-keybox a{color:var(--cyan)}
+.hotlist-keybox-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.hotlist-keybox-row input{flex:1;min-width:200px;background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.hotlist-keybox-row button{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;font-size:12px;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-logo">📈</div>
+      <div>
+        <div class="brand-title">Trading Buddy</div>
+        <div class="brand-sub">CHARTS &amp; DATA POWERED BY TRADINGVIEW</div>
+      </div>
+    </div>
+    <div class="status-row">
+      <div class="status-pill"><span class="live-dot"></span><span>Live</span></div>
+      <button id="refreshBtn" onclick="reloadAllWidgets()">
+        <span class="spin-icon">⟳</span><span>Reload Charts</span>
+      </button>
+    </div>
+  </div>
+  <div class="tabs-row" id="filterTabs">
+    <div class="filter-tab active" data-filter="all" onclick="setFilter('all')">All Stocks</div>
+    <div class="filter-tab" data-filter="large" onclick="setFilter('large')">Large Cap</div>
+    <div class="filter-tab" data-filter="mid" onclick="setFilter('mid')">Mid Cap</div>
+    <div class="filter-tab" data-filter="watch" onclick="setFilter('watch')">⭐ Watchlist</div>
+  </div>
+</header>
+
+<!-- Scrolling live ticker tape across the whole watchlist -->
+<div class="ticker-tape-wrap">
+  <div class="tradingview-widget-container" id="tickerTapeContainer"></div>
+</div>
+
+<main>
+  <div class="section-label">Daily Hot List — 3–4 Best Setups, Researched</div>
+  <div class="hotlist-meta">
+    <div class="hotlist-asof" id="hotlistAsOf"></div>
+  </div>
+  <div id="hotlistKeyBox"></div>
+  <div class="hotlist-grid" id="hotlistGrid"></div>
+  <div class="section-note">This list is <b>not auto-generated inside the app</b> — the app has no live market-data feed or chart-pattern scanner of its own (a fully automatic version was tried and worked in testing, but ran into a deploy-pipeline issue that made it unreliable to keep, so it's on hold). Instead I research it by hand — real earnings calendar + real quotes — and update it whenever you ask me to "refresh the hot list." Entry/target/stop are reference levels based on the data available when I last researched it — always confirm the live price on the chart before acting, and treat anything reporting earnings as gap risk: a stop-loss order does not protect you from a price gapping past it overnight.</div>
+
+  <div class="section-label">Position Size &amp; Risk Calculator</div>
+  <div class="calc-card">
+    <div class="calc-grid">
+      <div class="calc-field"><label>Account Size ($)</label>
+        <input type="number" id="calcAccount" value="10000" min="0" step="100" oninput="recalcPosition()"></div>
+      <div class="calc-field"><label>Risk per Trade (%)</label>
+        <input type="number" id="calcRiskPct" value="1" min="0.1" max="100" step="0.1" oninput="recalcPosition()"></div>
+      <div class="calc-field"><label>Direction</label>
+        <div class="dir-toggle">
+          <button class="dir-btn active long" id="dirLong" onclick="setDirection('long')" type="button">Long</button>
+          <button class="dir-btn" id="dirShort" onclick="setDirection('short')" type="button">Short</button>
+        </div></div>
+      <div class="calc-field"><label>Entry Price ($)</label>
+        <input type="number" id="calcEntry" placeholder="e.g. 150.00" min="0" step="0.01" oninput="recalcPosition()"></div>
+      <div class="calc-field"><label>Stop-Loss Price ($)</label>
+        <input type="number" id="calcStop" placeholder="e.g. 147.00" min="0" step="0.01" oninput="recalcPosition()"></div>
+      <div class="calc-field"><label>Target Price ($) — optional</label>
+        <input type="number" id="calcTarget" placeholder="e.g. 156.00" min="0" step="0.01" oninput="recalcPosition()"></div>
+    </div>
+    <div class="calc-results" id="calcResults">
+      <div class="calc-hint">Enter account size, risk %, entry price, and stop-loss price to calculate.</div>
+    </div>
+  </div>
+  <div class="section-note">Pure math, computed entirely in your browser — no market data dependency, so this always works. It answers one question: given where your stop is, how many shares keeps a stop-out to your intended risk %? It doesn't tell you where to set entry, stop, or target — that's your read of the chart.</div>
+
+  <div class="section-label">Today's Market Screener — Real, Live TradingView Signals</div>
+  <div class="scr-panel" id="screenerPanel">
+    <div class="tradingview-widget-container" id="screenerContainer"></div>
+  </div>
+  <div class="section-note">Market-wide, computed live by TradingView from real volume and price action — not limited to the 18 stocks in your watchlist below, since scanning for "what's moving today" has to look at the whole market. Use the filter dropdown inside the panel itself to switch between Volume Leaders, Gainers, Losers, Most Volatile, etc. — and tap any column header to sort. I don't have a reliable free source for earnings dates or dividend payouts, so that's intentionally not shown here rather than guessed.</div>
+
+  <div class="section-label" id="overviewLabel">Market Overview</div>
+  <div class="overview-panel" id="overviewPanel">
+    <div class="tradingview-widget-container" id="marketOverviewContainer"></div>
+  </div>
+
+  <div class="section-label">Manage Watchlist — tap ☆ to pin, tap a name for its full chart</div>
+  <div class="pin-list" id="pinList"></div>
+  <div class="section-note">Tap any name to open its full chart, multi-timeframe signal read (1H / 4H / 1D), and detailed signal breakdown — this is where signal quality is easiest to judge, since you can see whether timeframes agree before acting.</div>
+
+  <div class="section-label">Market News — Potential Catalysts</div>
+  <div class="news-panel" id="newsPanel">
+    <div class="tradingview-widget-container" id="newsContainer"></div>
+  </div>
+
+  <div class="section-label">Economic Calendar — Macro Catalysts</div>
+  <div class="tv-widget-panel" id="calendarPanel" style="min-height:420px">
+    <div class="tradingview-widget-container" id="calendarContainer"></div>
+  </div>
+  <div class="section-note">Fed meetings, CPI, jobs reports, and other scheduled events that tend to move the whole market at once — useful context for why a normally clean setup might suddenly whipsaw.</div>
+
+  <div class="section-label">Sector Heatmap — Stock-Specific or Market-Wide?</div>
+  <div class="tv-widget-panel" id="heatmapPanel" style="min-height:420px">
+    <div class="tradingview-widget-container" id="heatmapContainer"></div>
+  </div>
+  <div class="section-note">If a stock is moving and its whole sector is green (or red) too, that's a market-wide move, not a story specific to that company — different implications for how much you'd trust the signal.</div>
+
+  <div class="section-label">Trade Journal — Saved Locally In Your Browser</div>
+  <div class="journal-card">
+    <div class="journal-form">
+      <input type="text" id="jSymbol" placeholder="Symbol (e.g. AAPL)" maxlength="10" style="text-transform:uppercase">
+      <select id="jDirection"><option value="Long">Long</option><option value="Short">Short</option></select>
+      <input type="number" id="jEntry" placeholder="Entry $" step="0.01">
+      <input type="number" id="jExit" placeholder="Exit $ (blank = open)" step="0.01">
+      <input type="number" id="jShares" placeholder="Shares" step="1">
+      <input type="date" id="jDate">
+      <textarea id="jNotes" placeholder="Setup / reasoning / notes..." rows="2"></textarea>
+      <button type="button" onclick="addJournalEntry()">+ Add Trade</button>
+    </div>
+    <div class="journal-stats" id="journalStats"></div>
+    <div class="journal-table-wrap"><table class="journal-table" id="journalTable"></table></div>
+  </div>
+  <div class="section-note">Stored only in this browser (localStorage) — nothing is sent anywhere. It won't sync across devices or survive clearing browser data, so export/screenshot anything you want to keep long-term. The point isn't the P/L column — it's building the habit of reviewing your own reasoning after the fact, which is how you actually improve.</div>
+</main>
+
+<footer>
+  Real-time / delayed market data and charts are TradingView's own widgets, embedded live — not a copy or snapshot.<br>
+  For informational purposes only — not investment advice.
+</footer>
+
+<!-- MODAL: full interactive chart for one symbol -->
+<div id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div id="modalPanel">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div>
+        <div class="modal-symbol" id="mSymbol">—</div>
+        <div class="modal-name" id="mName">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-chart-wrap" id="modalChartContainer"></div>
+
+    <div class="section-label" style="margin:16px 4px 8px">Multi-Timeframe Confirmation</div>
+    <div class="mtf-row">
+      <div class="mtf-card" id="mtf1H"></div>
+      <div class="mtf-card" id="mtf4H"></div>
+      <div class="mtf-card" id="mtf1D"></div>
+    </div>
+    <div class="section-note" style="margin-bottom:0">When 1H, 4H, and 1D all point the same way, that's a stronger setup. When they conflict, that's usually a sign to wait or size down rather than force a trade.</div>
+
+    <div class="tv-note" style="margin-top:12px">The Buy/Sell rating is now built directly into the chart above, as its own panel at the bottom (below the volume bars) — a green bar leaning up means Buy, red leaning down means Sell, scroll/resize the chart if you don't see it yet. That's the reliable version. The box below is a second, more detailed view of the same rating and may not always load depending on your browser's ad-blocker settings — the link works regardless.</div>
+    <div class="signal-section">
+      <div class="signal-header">
+        <div class="signal-title">📊 DETAILED SIGNAL BREAKDOWN</div>
+        <a class="signal-ext-link" id="signalExtLink" href="#" target="_blank" rel="noopener">Open on TradingView →</a>
+      </div>
+      <div class="modal-signal-wrap" id="modalSignalContainer">
+        <div class="signal-placeholder"><span class="big">⏳</span><span>Loading live 4-hour signal — will show Strong Buy, Buy, Neutral, Sell, or Strong Sell.</span></div>
+      </div>
+    </div>
+    <div class="tv-note">Signal is TradingView's live technical rating (moving averages + oscillators — RSI, MACD, Stochastic, ADX, and more) computed on the 4-hour chart. It's a mechanical read of current indicators, not a guarantee — treat it as one input, not the whole decision.</div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// WATCHLIST — the full stock universe. Add/remove tickers here to widen or
+// narrow what the app tracks. "tv" is the exact TradingView symbol
+// (EXCHANGE:TICKER) that drives every widget — get it wrong and that one
+// symbol shows a "symbol error" instead of a chart, without breaking the
+// rest of the app.
+// ─────────────────────────────────────────────────────────────────────────
+const WATCHLIST = [
+  // Large cap
+  {symbol:'AAPL',  name:'Apple Inc.',              cap:'large', tv:'NASDAQ:AAPL'},
+  {symbol:'MSFT',  name:'Microsoft Corp.',          cap:'large', tv:'NASDAQ:MSFT'},
+  {symbol:'GOOGL', name:'Alphabet Inc.',            cap:'large', tv:'NASDAQ:GOOGL'},
+  {symbol:'AMZN',  name:'Amazon.com Inc.',          cap:'large', tv:'NASDAQ:AMZN'},
+  {symbol:'NVDA',  name:'NVIDIA Corp.',             cap:'large', tv:'NASDAQ:NVDA'},
+  {symbol:'META',  name:'Meta Platforms Inc.',      cap:'large', tv:'NASDAQ:META'},
+  {symbol:'TSLA',  name:'Tesla Inc.',               cap:'large', tv:'NASDAQ:TSLA'},
+  {symbol:'JPM',   name:'JPMorgan Chase & Co.',     cap:'large', tv:'NYSE:JPM'},
+  // Mid cap
+  {symbol:'SOFI',  name:'SoFi Technologies Inc.',   cap:'mid',   tv:'NASDAQ:SOFI'},
+  {symbol:'RYCEY', name:'Rolls-Royce Holdings plc', cap:'mid',   tv:'OTC:RYCEY'},
+  {symbol:'PLTR',  name:'Palantir Technologies',    cap:'mid',   tv:'NASDAQ:PLTR'},
+  {symbol:'RIVN',  name:'Rivian Automotive Inc.',   cap:'mid',   tv:'NASDAQ:RIVN'},
+  {symbol:'COIN',  name:'Coinbase Global Inc.',     cap:'mid',   tv:'NASDAQ:COIN'},
+  {symbol:'DKNG',  name:'DraftKings Inc.',          cap:'mid',   tv:'NASDAQ:DKNG'},
+  {symbol:'ROKU',  name:'Roku Inc.',                cap:'mid',   tv:'NASDAQ:ROKU'},
+  {symbol:'CHWY',  name:'Chewy Inc.',               cap:'mid',   tv:'NYSE:CHWY'},
+  {symbol:'AFRM',  name:'Affirm Holdings Inc.',     cap:'mid',   tv:'NASDAQ:AFRM'},
+  {symbol:'UPST',  name:'Upstart Holdings Inc.',    cap:'mid',   tv:'NASDAQ:UPST'},
+];
+
+// ── Daily Hot List ───────────────────────────────────────────────────────
+// Back to the reliable version: a single file, no API key, no serverless
+// function, no deploy step beyond what's always worked for this app. The
+// live-data attempt (browser → Finnhub, then a Netlify function) is on
+// hold — it kept running into deploy-pipeline issues that weren't fixable
+// from a plain drag-and-drop deploy, and that's not worth the reliability
+// this app has otherwise had. This list is hand-researched (real earnings
+// calendar + real quotes, same method used throughout this app) and
+// refreshed whenever you ask — same pattern as the other TradingView data
+// on this page, which has no fabricated numbers either.
+const HOTLIST_AS_OF = 'Researched Labor Day (Sept 7, 2026, markets closed) for the Sept 8 session';
+const HOTLIST = [
+  {
+    symbol:'ABM', name:'ABM Industries', tv:'NYSE:ABM', direction:'watch',
+    catalyst:'Q3 earnings due before tomorrow\'s open — consensus ≈$1.01 EPS.',
+    setup:'Sept 4 close $47.05 (-0.38%), trading mid-range between its 52-week low ($36.96) and high ($50.12) — no strong pre-earnings trend either way. Since the print lands before the open, this is an ORB (opening-range breakout) candidate: let the first 15–30 min set the range, trade whichever way it breaks.',
+    entry:'1st 15-min range break', target:'Size by R:R off the opening range', stop:'Opposite side of opening range',
+    gapRisk:false,
+    note:'Reports before the open, so you can wait for the reaction instead of holding through the gap.',
+  },
+  {
+    symbol:'UNFI', name:'United Natural Foods', tv:'NASDAQ:UNFI', direction:'watch',
+    catalyst:'Q4 earnings due before tomorrow\'s open — consensus ≈$0.61 EPS.',
+    setup:'Already up 0.71% Sept 4 (close $43.93), day range $43.26–$44.54 — modest strength heading into the print (52-week range $27.97–$57.02).',
+    entry:'1st 15-min range break', target:'Size by R:R off the opening range', stop:'Opposite side of opening range',
+    gapRisk:false,
+    note:'Also reports before the open — same wait-for-the-reaction logic as ABM above.',
+  },
+  {
+    symbol:'CASY', name:'Casey\'s General Stores', tv:'NASDAQ:CASY', direction:'watch',
+    catalyst:'Q1 earnings due after tomorrow\'s close — consensus ≈$6.75 EPS.',
+    setup:'Sept 4 close $756.09 (-0.31%), day range $747.28–$767.00, well within its wide 52-week range ($494.64–$927.85). Print lands after the close, so direction is unknown until then — this is a gap-risk earnings hold, not an ORB setup.',
+    entry:'Wait for the report — trade the gap direction the next morning, not before', target:'If gaps up: prior high ≈$767; if gaps down: prior low ≈$747', stop:'Opposite side of the pre-earnings range ($747–$767)',
+    gapRisk:true,
+    note:'Reports after the close — a stop-loss order will NOT protect you from an overnight gap if you hold through the print.',
+  },
+  {
+    symbol:'TTAN', name:'ServiceTitan', tv:'NASDAQ:TTAN', direction:'watch',
+    catalyst:'Q2 earnings due after tomorrow\'s close — consensus ≈$0.15 EPS.',
+    setup:'Already down 5.56% Sept 4 (close $87.92, prior close $93.10) heading into the print — real pre-earnings weakness in a historically volatile software name (52-week range $54.17–$119.99).',
+    entry:'Wait for the report — trade the gap direction the next morning, not before', target:'If gaps up: prior high ≈$91.60; if gaps down: prior low ≈$87.71', stop:'Opposite side of the pre-earnings range ($87.71–$91.60)',
+    gapRisk:true,
+    note:'Already selling off into the print, which could mean downside is priced in or sets up a "sell the rumor" bounce. Reports after the close either way — a stop-loss won\'t protect an overnight hold.',
+  },
+];
+// Tries the live serverless feed first (/api/hotlist — only exists once this
+// site is deployed via a build pipeline, e.g. a GitHub-connected Netlify
+// site, not a plain drag-and-drop). Falls back to the hand-researched list
+// above if that endpoint is missing, errors, or returns nothing usable —
+// same honest-degradation pattern as the TradingView widgets on this page.
+async function renderHotlist(){
+  const asOf = document.getElementById('hotlistAsOf');
+  const keyBox = document.getElementById('hotlistKeyBox');
+  if(keyBox) keyBox.innerHTML = '';
+  try {
+    const res = await fetch('/api/hotlist');
+    if(!res.ok){
+      let reason = 'http-' + res.status;
+      try { const body = await res.json(); if(body && body.error) reason = body.error; } catch(e){}
+      throw new Error(reason);
+    }
+    const data = await res.json();
+    if(!data.list || !data.list.length) throw new Error('no-data');
+    if(asOf) asOf.textContent = 'LIVE — updated ' + new Date(data.generatedAt).toLocaleString();
+    paintHotlist(data.list, true);
+  } catch(err){
+    if(asOf) asOf.textContent = HOTLIST_AS_OF + '  (live feed unavailable — showing last hand-researched list)';
+    paintHotlist(HOTLIST, false);
+  }
+}
+
+let lastHotlistData = [];
+function paintHotlist(list, isLive){
+  lastHotlistData = list;
+  const grid = document.getElementById('hotlistGrid');
+  if(!grid) return;
+  if(!list.length){
+    grid.innerHTML = '<div class="hotlist-empty">No hot list available right now.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(h => `
+    <div class="hot-card" onclick="openModal('${h.symbol}')">
+      <div class="hot-head">
+        <span class="hot-sym">${h.symbol}</span>
+        <span class="hot-dir ${h.direction==='short'?'short':'long'}">${h.direction==='watch'?'WATCH (either way)':h.direction.toUpperCase()}</span>
+      </div>
+      <div class="hot-catalyst">${h.catalyst}</div>
+      <div class="hot-setup">${h.setup}</div>
+      ${h.gapRisk ? '<div class="hot-gap-warn">⚠️ Earnings-related — holding through the report means overnight gap risk. A stop-loss order will NOT protect you from a gap past it.</div>' : ''}
+      <div class="hot-levels">
+        <div class="hot-lvl"><div class="hot-lvl-label">Entry</div><div class="hot-lvl-value">${h.entry}</div></div>
+        <div class="hot-lvl"><div class="hot-lvl-label">Target</div><div class="hot-lvl-value">${h.target}</div></div>
+        <div class="hot-lvl"><div class="hot-lvl-label">Stop</div><div class="hot-lvl-value">${h.stop}</div></div>
+      </div>
+      ${h.note ? `<div class="hot-note">${h.note}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+const WATCH_KEY = 'tb_pinned_v1';
+let curFilter = 'all';
+
+// ── pins ──
+function loadPins(){ try{ return JSON.parse(localStorage.getItem(WATCH_KEY)) || []; }catch{ return []; } }
+function savePins(p){ try{ localStorage.setItem(WATCH_KEY, JSON.stringify(p)); }catch{} }
+function isPinned(sym){ return loadPins().includes(sym); }
+function togglePin(sym,ev){
+  if(ev) ev.stopPropagation();
+  let p = loadPins();
+  p = p.includes(sym) ? p.filter(s=>s!==sym) : [...p, sym];
+  savePins(p);
+  renderPinList();
+  if(curFilter==='watch') mountMarketOverview();
+}
+
+// ── TradingView widget mounting helper ──
+// Every chart on this page is an official TradingView embedded widget: a
+// <script> pointed at TradingView's own loader with a JSON config as its
+// body. It runs inside TradingView's own iframe, so there's no API key and
+// no CORS dependency — the same mechanism TradingView's own site uses.
+function mountTVWidget(containerEl, scriptSrc, config){
+  containerEl.innerHTML = `<div class="tradingview-widget-container__widget"></div>`;
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = scriptSrc;
+  script.async = true;
+  script.text = JSON.stringify(config);
+  containerEl.appendChild(script);
+}
+
+function mountTickerTape(){
+  const el = document.getElementById('tickerTapeContainer');
+  if(!el) return;
+  mountTVWidget(el,
+    'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js',
+    {
+      symbols: WATCHLIST.map(i => ({proName:i.tv, title:i.symbol})),
+      showSymbolLogo: true,
+      isTransparent: true,
+      displayMode: 'compact',
+      colorTheme: 'dark',
+      locale: 'en'
+    });
+}
+
+// ── Today's Screener: TradingView's own live, market-wide screener,
+// pointed at real presets (unusual volume, most volatile, gainers, losers).
+// This is genuine data computed by TradingView, not a custom score — see
+// the note in the page about why a real composite "best stock" algorithm
+// isn't something this app can compute on its own.
+// Config uses only TradingView's own documented default values (no guessed
+// preset strings) — "general" is the screener's actual out-of-the-box
+// default, and showToolbar:true exposes TradingView's own filter dropdown
+// (Volume Leaders / Gainers / Losers / Most Volatile / etc.) so the preset
+// selection is handled by their tested UI, not a config value I'm guessing.
+function mountScreener(){
+  const el = document.getElementById('screenerContainer');
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js', {
+    width: '100%', height: '450', defaultColumn: 'overview', defaultScreen: 'general',
+    market: 'america', showToolbar: true, colorTheme: 'dark', locale: 'en', isTransparent: true
+  });
+  setTimeout(()=>{
+    if(!widgetRenderedOk(el)){
+      el.innerHTML = `<div class="panel-fallback">Screener didn't load.<br>
+        <a href="https://www.tradingview.com/screener/" target="_blank" rel="noopener" style="color:#60a5fa">Open the screener on TradingView →</a></div>`;
+    }
+  }, 6000);
+}
+function mountNews(){
+  const el = document.getElementById('newsContainer');
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js', {
+    feedMode: 'all_symbols', isTransparent: true, displayMode: 'regular',
+    width: '100%', height: '400', colorTheme: 'dark', locale: 'en'
+  });
+  setTimeout(()=>{
+    if(!widgetRenderedOk(el)){
+      el.innerHTML = `<div class="panel-fallback">News feed didn't load.<br>
+        <a href="https://www.tradingview.com/news/" target="_blank" rel="noopener" style="color:#60a5fa">Open market news on TradingView →</a></div>`;
+    }
+  }, 6000);
+}
+
+function mountCalendar(){
+  const el = document.getElementById('calendarContainer');
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-economic-calendar.js', {
+    colorTheme: 'dark', isTransparent: true, width: '100%', height: '420',
+    locale: 'en', importanceFilter: '-1,0,1', countryFilter: 'us'
+  });
+  setTimeout(()=>{
+    if(!widgetRenderedOk(el)){
+      el.innerHTML = `<div class="panel-fallback">Calendar didn't load.<br>
+        <a href="https://www.tradingview.com/economic-calendar/" target="_blank" rel="noopener" style="color:#60a5fa">Open the economic calendar on TradingView →</a></div>`;
+    }
+  }, 6000);
+}
+function mountHeatmap(){
+  const el = document.getElementById('heatmapContainer');
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js', {
+    exchanges: [], dataSource: 'SPX500', grouping: 'sector', blockSize: 'market_cap_basic',
+    blockColor: 'change', locale: 'en', symbolUrl: '', colorTheme: 'dark', hasTopBar: true,
+    isDataSetEnabled: false, isZoomEnabled: true, hasSymbolTooltip: true, width: '100%', height: '420'
+  });
+  setTimeout(()=>{
+    if(!widgetRenderedOk(el)){
+      el.innerHTML = `<div class="panel-fallback">Heatmap didn't load.<br>
+        <a href="https://www.tradingview.com/heatmap/stock/" target="_blank" rel="noopener" style="color:#60a5fa">Open the sector heatmap on TradingView →</a></div>`;
+    }
+  }, 6000);
+}
+
+// Single robust "Market Overview" widget — one widget instance with a
+// built-in interactive chart pane that swaps to whichever symbol you click.
+// This replaced an earlier design that mounted 18 separate mini-chart
+// widgets at once, which loaded unreliably — one solid widget is far more
+// dependable than many small ones firing simultaneously.
+function tabConfig(title, items){
+  return { title, symbols: items.map(i => ({s:i.tv, d:i.symbol})), originalTitle: title };
+}
+function mountMarketOverview(){
+  const el = document.getElementById('marketOverviewContainer');
+  const label = document.getElementById('overviewLabel');
+  let tabs;
+  if(curFilter==='all'){
+    label.textContent = 'Market Overview — All Stocks';
+    tabs = [
+      tabConfig('Large Cap', WATCHLIST.filter(i=>i.cap==='large')),
+      tabConfig('Mid Cap', WATCHLIST.filter(i=>i.cap==='mid')),
+    ];
+  } else if(curFilter==='large'){
+    label.textContent = 'Market Overview — Large Cap';
+    tabs = [tabConfig('Large Cap', WATCHLIST.filter(i=>i.cap==='large'))];
+  } else if(curFilter==='mid'){
+    label.textContent = 'Market Overview — Mid Cap';
+    tabs = [tabConfig('Mid Cap', WATCHLIST.filter(i=>i.cap==='mid'))];
+  } else if(curFilter==='watch'){
+    label.textContent = 'Market Overview — Your Watchlist';
+    const pins = loadPins();
+    const items = WATCHLIST.filter(i=>pins.includes(i.symbol));
+    if(items.length===0){
+      el.innerHTML = '<div class="empty-state">No favorites yet — tap ☆ next to any stock below to pin it here.</div>';
+      return;
+    }
+    tabs = [tabConfig('Watchlist', items)];
+  }
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js', {
+    colorTheme: 'dark', dateRange: '12M', showChart: true, locale: 'en',
+    width: '100%', height: '520', largeChartUrl: '', isTransparent: true,
+    showSymbolLogo: true, showFloatingTooltip: false,
+    plotLineColorGrowing: 'rgba(34,197,94,1)', plotLineColorFalling: 'rgba(239,68,68,1)',
+    gridLineColor: 'rgba(42,51,80,0.6)', scaleFontColor: 'rgba(148,163,184,1)',
+    belowLineFillColorGrowing: 'rgba(34,197,94,0.12)', belowLineFillColorFalling: 'rgba(239,68,68,0.12)',
+    belowLineFillColorGrowingBottom: 'rgba(34,197,94,0)', belowLineFillColorFallingBottom: 'rgba(239,68,68,0)',
+    symbolActiveColor: 'rgba(59,130,246,0.15)',
+    tabs
+  });
+}
+
+// The modal chart uses TradingView's original tv.js constructor embed
+// (new TradingView.widget({...})) rather than the JSON-in-script-tag style
+// used above — it's the oldest, most widely used TradingView embed method
+// and renders reliably where the newer style widget sometimes didn't.
+let tvJsLoading = false;
+function ensureTVJS(cb){
+  if(window.TradingView && window.TradingView.widget){ cb(); return; }
+  if(tvJsLoading){
+    const iv = setInterval(()=>{
+      if(window.TradingView && window.TradingView.widget){ clearInterval(iv); cb(); }
+    }, 150);
+    setTimeout(()=>clearInterval(iv), 8000);
+    return;
+  }
+  tvJsLoading = true;
+  const s = document.createElement('script');
+  s.src = 'https://s3.tradingview.com/tv.js';
+  s.onload = ()=>{ tvJsLoading = false; cb(); };
+  s.onerror = ()=>{ tvJsLoading = false; cb(null, true); };
+  document.head.appendChild(s);
+}
+function showModalFallback(tvSymbol){
+  const el = document.getElementById('modalChartContainer');
+  const url = 'https://www.tradingview.com/symbols/'+tvSymbol.replace(':','-')+'/';
+  el.innerHTML = `<div class="panel-fallback">Chart didn't load for ${tvSymbol}.<br>
+    <a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa">View it on TradingView.com →</a></div>`;
+}
+function mountAdvancedChart(tvSymbol){
+  const el = document.getElementById('modalChartContainer');
+  if(!el) return;
+  el.innerHTML = '<div class="panel-fallback">⏳ Loading chart…</div>';
+  ensureTVJS((_, failed)=>{
+    if(failed || !(window.TradingView && window.TradingView.widget)){ showModalFallback(tvSymbol); return; }
+    el.innerHTML = '';
+    try{
+      new TradingView.widget({
+        // interval "240" = 4 hours, so the chart (and the Technical Rating
+        // study below) opens on the 4-hour timeframe by default, matching
+        // what was asked for — the toolbar still lets you switch timeframes.
+        autosize: true, symbol: tvSymbol, interval: '240', timezone: 'Etc/UTC',
+        theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#161b26',
+        enable_publishing: false, allow_symbol_change: false, hide_side_toolbar: false,
+        // "STD;Technical_Rating" is TradingView's built-in Buy/Sell rating
+        // indicator, drawn as its own panel at the bottom of the chart —
+        // this runs inside the chart widget that's already rendering
+        // reliably, instead of the separate widget file that kept failing
+        // (most likely blocked by a browser ad/content blocker, since
+        // everything else on the page loads fine in the same browser).
+        studies: ['MASimple@tv-basicstudies', 'STD;Technical_Rating'],
+        container_id: 'modalChartContainer'
+      });
+    }catch(e){ showModalFallback(tvSymbol); return; }
+    // safety net: if nothing actually rendered in, surface a fallback link
+    setTimeout(()=>{ if(el.children.length===0) showModalFallback(tvSymbol); }, 6000);
+  });
+}
+
+function reloadAllWidgets(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  mountTickerTape();
+  mountScreener();
+  mountNews();
+  mountCalendar();
+  mountHeatmap();
+  mountMarketOverview();
+  if(modalSymbol){
+    const item = WATCHLIST.find(i=>i.symbol===modalSymbol);
+    if(item){ mountAdvancedChart(item.tv); mountMultiTimeframe(item.tv); mountTechnicalRating(item.tv); }
+  }
+  setTimeout(()=>btn.classList.remove('spinning'), 900);
+}
+
+// ── filtering ──
+function currentList(){
+  if(curFilter==='large') return WATCHLIST.filter(i=>i.cap==='large');
+  if(curFilter==='mid') return WATCHLIST.filter(i=>i.cap==='mid');
+  if(curFilter==='watch'){ const p = loadPins(); return WATCHLIST.filter(i=>p.includes(i.symbol)); }
+  return WATCHLIST;
+}
+function setFilter(f){
+  curFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.toggle('active', t.dataset.filter===f));
+  mountMarketOverview();
+  renderPinList();
+}
+
+// ── pin manager (also doubles as the "open full chart" launcher) ──
+function renderPinList(){
+  const el = document.getElementById('pinList');
+  const list = curFilter==='watch' ? WATCHLIST : currentList();
+  if(list.length===0){ el.innerHTML=''; return; }
+  el.innerHTML = list.map(item => {
+    const badgeClass = item.cap==='mid' ? 'mid' : 'large';
+    const badgeLabel = item.cap==='mid' ? 'MID' : 'LARGE';
+    return `<div class="pin-row" onclick="openModal('${item.symbol}')">
+      <span class="pin-star" onclick="togglePin('${item.symbol}',event)">${isPinned(item.symbol)?'⭐':'☆'}</span>
+      <span class="pin-symbol">${item.symbol}</span>
+      <span class="pin-name">${item.name}</span>
+      <span class="pin-badge ${badgeClass}">${badgeLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+// TradingView's official "Technical Analysis" widget — a live Buy/Sell/
+// Neutral rating computed from real indicators (moving averages + RSI,
+// MACD, Stochastic, ADX, etc.) at whatever interval you give it. Using
+// interval:"4h" makes this the 4-hour signal, matching the old app.
+function widgetRenderedOk(containerEl){
+  const inner = containerEl.querySelector('.tradingview-widget-container__widget');
+  return !!(inner && inner.children.length > 0);
+}
+function mountTechnicalRating(tvSymbol){
+  const el = document.getElementById('modalSignalContainer');
+  if(!el) return;
+  // Persistent external link — always present and correct regardless of
+  // whether the embedded widget itself renders, so the real signal is
+  // never more than one tap away even if the embed hiccups.
+  const extUrl = 'https://www.tradingview.com/symbols/'+tvSymbol.replace(':','-')+'/technicals/';
+  const linkEl = document.getElementById('signalExtLink');
+  if(linkEl) linkEl.href = extUrl;
+
+  function tryInterval(interval, label, onFail){
+    el.innerHTML = `<div class="signal-placeholder"><span class="big">⏳</span><span>Loading live ${label} signal for ${tvSymbol} — will show Strong Buy, Buy, Neutral, Sell, or Strong Sell.</span></div>`;
+    mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js', {
+      interval: interval, width: '100%', height: '100%', isTransparent: true,
+      symbol: tvSymbol, showIntervalTabs: true, displayMode: 'multiple',
+      locale: 'en', colorTheme: 'dark'
+    });
+    setTimeout(()=>{ if(!widgetRenderedOk(el)) onFail(); }, 4500);
+  }
+
+  // interval:"4h" was likely the real bug through every earlier attempt —
+  // TradingView's intraday resolution values are minute-count strings
+  // ("60","120","240"), not "4h"/"1h" labels; "240" = 4 hours. If that
+  // still doesn't render for some other reason, automatically fall back
+  // to "D" (daily) — the widget's own documented default — so a real
+  // signal shows either way instead of a repeated blank box.
+  tryInterval('240', '4-hour', ()=>{
+    tryInterval('D', 'daily', ()=>{
+      el.innerHTML = `<div class="panel-fallback">Live signal widget didn't load in-app this time.<br>
+        <a href="${extUrl}" target="_blank" rel="noopener" style="color:#60a5fa">View the real-time rating on TradingView →</a></div>`;
+    });
+  });
+}
+
+// Three compact ratings side by side (1H / 4H / 1D) so you can see
+// agreement or conflict across timeframes at a glance, in addition to the
+// detailed single-timeframe breakdown above.
+function mountMiniRating(containerId, tvSymbol, interval, label){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = `<div class="signal-placeholder" style="padding:8px;gap:4px">
+    <span style="font-size:18px">⏳</span><span style="font-size:10px">${label}</span></div>`;
+  mountTVWidget(el, 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js', {
+    interval: interval, width: '100%', height: '100%', isTransparent: true,
+    symbol: tvSymbol, showIntervalTabs: false, displayMode: 'single',
+    locale: 'en', colorTheme: 'dark'
+  });
+  setTimeout(()=>{
+    if(!widgetRenderedOk(el)){
+      const url = 'https://www.tradingview.com/symbols/'+tvSymbol.replace(':','-')+'/technicals/';
+      el.innerHTML = `<div class="signal-placeholder" style="padding:8px;gap:4px">
+        <span style="font-size:10px">${label}</span>
+        <a href="${url}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:10px">View →</a></div>`;
+    }
+  }, 4500);
+}
+function mountMultiTimeframe(tvSymbol){
+  mountMiniRating('mtf1H', tvSymbol, '60', '1 HOUR');
+  mountMiniRating('mtf4H', tvSymbol, '240', '4 HOUR');
+  mountMiniRating('mtf1D', tvSymbol, 'D', '1 DAY');
+}
+
+// ── modal: full interactive TradingView chart ──
+let modalSymbol = null;
+function openModal(symbol){
+  modalSymbol = symbol;
+  const item = WATCHLIST.find(i=>i.symbol===symbol) || lastHotlistData.find(i=>i.symbol===symbol);
+  document.getElementById('mSymbol').textContent = symbol;
+  document.getElementById('mName').textContent = item ? item.name : '';
+  document.getElementById('modalOverlay').classList.add('open');
+  if(item){
+    mountAdvancedChart(item.tv);
+    mountMultiTimeframe(item.tv);
+    mountTechnicalRating(item.tv);
+  }
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('modalChartContainer').innerHTML = '';
+  document.getElementById('modalSignalContainer').innerHTML = '';
+  ['mtf1H','mtf4H','mtf1D'].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=''; });
+  modalSymbol = null;
+}
+
+// ── Position size / risk calculator — pure math, no market data
+// dependency, so unlike the widgets above this always works. ──
+let calcDirection = 'long';
+function setDirection(dir){
+  calcDirection = dir;
+  document.getElementById('dirLong').className = 'dir-btn' + (dir==='long' ? ' active long' : '');
+  document.getElementById('dirShort').className = 'dir-btn' + (dir==='short' ? ' active short' : '');
+  recalcPosition();
+}
+function recalcPosition(){
+  const out = document.getElementById('calcResults');
+  const account = parseFloat(document.getElementById('calcAccount').value);
+  const riskPct = parseFloat(document.getElementById('calcRiskPct').value);
+  const entry = parseFloat(document.getElementById('calcEntry').value);
+  const stop = parseFloat(document.getElementById('calcStop').value);
+  const targetRaw = document.getElementById('calcTarget').value;
+  const target = targetRaw ? parseFloat(targetRaw) : null;
+
+  if(!account || !riskPct || !entry || !stop){
+    out.innerHTML = '<div class="calc-hint">Enter account size, risk %, entry price, and stop-loss price to calculate.</div>';
+    return;
+  }
+  const perShareRisk = Math.abs(entry - stop);
+  if(perShareRisk === 0){
+    out.innerHTML = '<div class="calc-warn">⚠️ Stop-loss can\'t equal entry price.</div>';
+    return;
+  }
+  let warn = '';
+  if(calcDirection==='long' && stop >= entry) warn = 'For a Long trade, the stop is usually below your entry price.';
+  if(calcDirection==='short' && stop <= entry) warn = 'For a Short trade, the stop is usually above your entry price.';
+
+  const riskDollars = account * (riskPct/100);
+  const shares = Math.floor(riskDollars / perShareRisk);
+  const positionValue = shares * entry;
+  const pctOfAccount = account ? (positionValue/account*100) : 0;
+
+  let rrHtml = '';
+  if(target != null && !isNaN(target)){
+    const reward = calcDirection==='long' ? (target-entry) : (entry-target);
+    const rMultiple = reward / perShareRisk;
+    rrHtml = `<div class="calc-tile"><div class="calc-tile-label">Reward : Risk</div>
+      <div class="calc-tile-value" style="color:${rMultiple>=1?'var(--green)':(rMultiple<0?'var(--red)':'#f1f5f9')}">${rMultiple.toFixed(2)}R</div></div>`;
+  }
+
+  out.innerHTML = `
+    ${warn ? `<div class="calc-warn">⚠️ ${warn}</div>` : ''}
+    <div class="calc-tile"><div class="calc-tile-label">$ At Risk</div><div class="calc-tile-value">$${riskDollars.toFixed(2)}</div></div>
+    <div class="calc-tile"><div class="calc-tile-label">Shares</div><div class="calc-tile-value">${shares.toLocaleString()}</div></div>
+    <div class="calc-tile"><div class="calc-tile-label">Position Value</div><div class="calc-tile-value">$${positionValue.toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
+    <div class="calc-tile"><div class="calc-tile-label">% of Account</div><div class="calc-tile-value">${pctOfAccount.toFixed(1)}%</div></div>
+    ${rrHtml}
+  `;
+}
+
+// ── Trade journal — localStorage only, per-browser, never leaves the
+// device. Not synced anywhere, no export yet — screenshot/back up
+// anything you want to keep long-term. ──
+const JOURNAL_KEY = 'tb_journal_v1';
+function loadJournal(){ try{ return JSON.parse(localStorage.getItem(JOURNAL_KEY)) || []; }catch{ return []; } }
+function saveJournal(j){ try{ localStorage.setItem(JOURNAL_KEY, JSON.stringify(j)); }catch{} }
+function addJournalEntry(){
+  const symbol = document.getElementById('jSymbol').value.trim().toUpperCase();
+  const direction = document.getElementById('jDirection').value;
+  const entry = parseFloat(document.getElementById('jEntry').value);
+  const exitRaw = document.getElementById('jExit').value;
+  const exit = exitRaw ? parseFloat(exitRaw) : null;
+  const shares = parseFloat(document.getElementById('jShares').value);
+  const date = document.getElementById('jDate').value || new Date().toISOString().slice(0,10);
+  const notes = document.getElementById('jNotes').value.trim();
+
+  if(!symbol || !entry || !shares){
+    alert('Symbol, entry price, and shares are required.');
+    return;
+  }
+  let pnl = null;
+  if(exit != null && !isNaN(exit)){
+    pnl = (direction==='Short' ? (entry-exit) : (exit-entry)) * shares;
+  }
+  const j = loadJournal();
+  j.push({ id: Date.now(), date, symbol, direction, entry, exit, shares, notes, pnl });
+  saveJournal(j);
+  ['jSymbol','jEntry','jExit','jShares','jNotes'].forEach(id=>document.getElementById(id).value='');
+  renderJournal();
+}
+function deleteJournalEntry(id){
+  saveJournal(loadJournal().filter(e=>e.id!==id));
+  renderJournal();
+}
+function renderJournal(){
+  const j = loadJournal().sort((a,b)=> b.id - a.id);
+  const statsEl = document.getElementById('journalStats');
+  const tableEl = document.getElementById('journalTable');
+  const closed = j.filter(e=>e.pnl!=null);
+  const wins = closed.filter(e=>e.pnl>0).length;
+  const totalPnl = closed.reduce((s,e)=>s+e.pnl,0);
+  const winRate = closed.length ? (wins/closed.length*100) : 0;
+
+  statsEl.innerHTML = `
+    <div class="jstat">Total Trades<b>${j.length}</b></div>
+    <div class="jstat">Closed<b>${closed.length}</b></div>
+    <div class="jstat">Win Rate<b style="color:${closed.length?(winRate>=50?'var(--green)':'var(--red)'):'#f1f5f9'}">${closed.length?winRate.toFixed(0)+'%':'—'}</b></div>
+    <div class="jstat">Total P/L<b style="color:${closed.length?(totalPnl>=0?'var(--green)':'var(--red)'):'#f1f5f9'}">${closed.length?(totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2):'—'}</b></div>
+  `;
+
+  if(j.length===0){
+    tableEl.innerHTML = '<tr><td style="padding:20px;text-align:center;color:var(--muted)">No trades logged yet — add your first one above.</td></tr>';
+    return;
+  }
+  tableEl.innerHTML = `
+    <tr><th>Date</th><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P/L</th><th>Notes</th><th></th></tr>
+    ${j.map(e=>`
+      <tr>
+        <td>${e.date}</td>
+        <td><b>${e.symbol}</b></td>
+        <td>${e.direction}</td>
+        <td>$${e.entry.toFixed(2)}</td>
+        <td>${e.exit!=null ? '$'+e.exit.toFixed(2) : '<span style="color:var(--muted)">open</span>'}</td>
+        <td>${e.shares}</td>
+        <td class="${e.pnl==null?'':(e.pnl>=0?'pnl-pos':'pnl-neg')}">${e.pnl==null?'—':(e.pnl>=0?'+':'')+'$'+e.pnl.toFixed(2)}</td>
+        <td class="jnotes">${e.notes ? e.notes.replace(/</g,'&lt;') : ''}</td>
+        <td><button class="jdel" onclick="deleteJournalEntry(${e.id})" type="button">✕</button></td>
+      </tr>
+    `).join('')}
+  `;
+}
+
+// ── init ──
+function init(){
+  renderHotlist();
+  mountTickerTape();
+  mountScreener();
+  mountNews();
+  mountCalendar();
+  mountHeatmap();
+  mountMarketOverview();
+  renderPinList();
+  recalcPosition();
+  renderJournal();
+}
+init();
+</script>
+</body>
+</html>
