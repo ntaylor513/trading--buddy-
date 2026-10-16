@@ -208,6 +208,12 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
   display:flex;align-items:center;gap:6px;transition:.15s}
 #alertsBtn.on{background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border-color:transparent;
   box-shadow:0 0 10px rgba(34,197,94,.35)}
+#pushBtn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);
+  padding:8px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:.15s}
+#pushBtn.on{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-color:transparent;
+  box-shadow:0 0 10px rgba(37,99,235,.35)}
+#pushBtn:disabled{opacity:.45;cursor:default}
 @keyframes breakoutFlashPulse{
   0%,100%{background-color:transparent}
   15%{background-color:var(--breakout-flash-color,rgba(245,158,11,.5))}
@@ -256,6 +262,9 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
       <div class="status-pill"><span class="live-dot"></span><span>Live</span></div>
       <button id="alertsBtn" onclick="toggleAlertMonitoring()">
         <span>🔔</span><span id="alertsBtnLabel">Start Price Alerts</span>
+      </button>
+      <button id="pushBtn" onclick="togglePhoneAlerts()">
+        <span>📱</span><span id="pushBtnLabel">Enable Phone Alerts</span>
       </button>
       <button id="refreshBtn" onclick="reloadAllWidgets()">
         <span class="spin-icon">⟳</span><span>Reload Charts</span>
@@ -1191,6 +1200,7 @@ function syncHotlistAlerts(list){
       label: h.setupName || h.catalyst || '',
     });
   });
+  syncPushSubscription();
 }
 
 function renderManualAlerts(){
@@ -1229,12 +1239,14 @@ function addManualAlert(){
   document.getElementById('alertPriceInput').value = '';
   renderManualAlerts();
   renderPinList();
+  syncPushSubscription();
 }
 function removeManualAlert(i){
   manualAlerts.splice(i,1);
   saveManualAlerts(manualAlerts);
   renderManualAlerts();
   renderPinList();
+  syncPushSubscription();
 }
 
 function flashTickerRow(ticker, direction){
@@ -1313,6 +1325,126 @@ async function checkAlerts(){
   }
 }
 
+// ── Phone (push) alerts ──────────────────────────────────────────────
+// Works even when this tab is closed/backgrounded, unlike the in-page
+// flash/sound/notification above, because a service worker + a server-
+// side scheduled check (netlify/functions/check-alerts-cron.js) do the
+// watching instead of this page's own setInterval loop.
+//
+// This public key is NOT a secret — it's meant to be embedded in client
+// code (that's how Web Push's VAPID scheme works). Its matching PRIVATE
+// key lives only in Netlify's environment variables, never here.
+const PUSH_VAPID_PUBLIC_KEY = 'BIzMxAkpSI2dhweYBORVOs1gfZBZWjpOrPDl-bdnIjaQsKQAN7YCZqre0JTJ4pCiDtZQPg6ydsEK8W0gPlap3nU';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{ return await navigator.serviceWorker.register('/sw.js'); }
+  catch(e){ console.warn('[push] service worker registration failed', e); return null; }
+}
+
+// Builds the flat alert list the server needs to watch — Hot List picks
+// with a researched trigger plus every manual alert — from the same
+// alertLevels map the in-page checker already uses.
+function buildAlertListForServer(){
+  const out = [];
+  for(const [ticker, level] of alertLevels.entries()){
+    if(level.long != null) out.push({ ticker, direction:'long', price: level.long, label: level.label||'' });
+    if(level.short != null) out.push({ ticker, direction:'short', price: level.short, label: level.label||'' });
+  }
+  return out;
+}
+
+// Pushes the current subscription + alert list to the server. Called on
+// subscribe, and again whenever alerts change, so the server always
+// checks the levels you're actually watching right now.
+async function syncPushSubscription(){
+  if(!('serviceWorker' in navigator)) return;
+  const reg = await navigator.serviceWorker.getRegistration();
+  if(!reg) return;
+  const sub = await reg.pushManager.getSubscription();
+  if(!sub) return; // not subscribed — nothing to sync
+  try{
+    await fetch('/api/save-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub, alerts: buildAlertListForServer() }),
+    });
+  }catch(e){ console.warn('[push] sync failed', e); }
+}
+
+async function togglePhoneAlerts(){
+  const btn = document.getElementById('pushBtn');
+  const label = document.getElementById('pushBtnLabel');
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    alert('Phone/background push alerts aren\'t supported in this browser. Try Chrome on Android or Safari on iOS 16.4+ (added to your Home Screen).');
+    return;
+  }
+  btn.disabled = true;
+  try{
+    const reg = await registerServiceWorker();
+    if(!reg){ alert('Could not register the background alert worker.'); return; }
+    const existing = await reg.pushManager.getSubscription();
+
+    if(existing){
+      // Turn phone alerts off.
+      await fetch('/api/save-subscription', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: existing }),
+      }).catch(()=>{});
+      await existing.unsubscribe();
+      btn.classList.remove('on');
+      label.textContent = 'Enable Phone Alerts';
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      alert('Notification permission was not granted, so phone alerts can\'t be turned on.');
+      return;
+    }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY),
+    });
+    await fetch('/api/save-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub, alerts: buildAlertListForServer() }),
+    });
+    btn.classList.add('on');
+    label.textContent = 'Phone Alerts On';
+  }catch(e){
+    console.error('[push] subscribe failed', e);
+    alert('Could not turn on phone alerts — see the browser console for details.');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+// Reflects whether this device is already subscribed when the page loads.
+async function initPushButtonState(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    const btn = document.getElementById('pushBtn');
+    if(btn) btn.disabled = true;
+    return;
+  }
+  const reg = await registerServiceWorker();
+  if(!reg) return;
+  const sub = await reg.pushManager.getSubscription();
+  if(sub){
+    document.getElementById('pushBtn').classList.add('on');
+    document.getElementById('pushBtnLabel').textContent = 'Phone Alerts On';
+  }
+}
+
 function toggleAlertMonitoring(){
   const btn = document.getElementById('alertsBtn');
   const label = document.getElementById('alertsBtnLabel');
@@ -1354,6 +1486,7 @@ function init(){
   recalcPosition();
   renderJournal();
   renderManualAlerts();
+  initPushButtonState();
 }
 init();
 </script>
