@@ -1,0 +1,13 @@
+# If you already have a netlify.toml in the repo root, do NOT replace it —
+# merge just the [functions] and [[redirects]] blocks below into your
+# existing file instead (a second netlify.toml, or duplicate top-level
+# keys, will conflict). If you don't have one yet, this file can be added
+# to the repo root as-is.
+
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

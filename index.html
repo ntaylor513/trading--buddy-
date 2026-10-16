@@ -201,6 +201,44 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .div-calc input{width:100%;background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;color:#f1f5f9;font-size:14px;font-family:inherit;box-sizing:border-box}
 .div-calc-out{margin-top:8px;font-size:13px;color:#f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#0d1220;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
 .div-calc-out b{color:var(--green);font-size:15px}
+
+/* ── Breakout price alerts ── */
+#alertsBtn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);
+  padding:8px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:.15s}
+#alertsBtn.on{background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border-color:transparent;
+  box-shadow:0 0 10px rgba(34,197,94,.35)}
+@keyframes breakoutFlashPulse{
+  0%,100%{background-color:transparent}
+  15%{background-color:var(--breakout-flash-color,rgba(245,158,11,.5))}
+  40%{background-color:var(--breakout-flash-color,rgba(245,158,11,.15))}
+  60%{background-color:var(--breakout-flash-color,rgba(245,158,11,.5))}
+  85%{background-color:var(--breakout-flash-color,rgba(245,158,11,.15))}
+}
+.breakout-flash{animation:breakoutFlashPulse 1.4s ease-in-out 2}
+.breakout-flash-long{--breakout-flash-color:rgba(34,197,94,.4);outline:2px solid var(--green);outline-offset:-2px}
+.breakout-flash-short{--breakout-flash-color:rgba(239,68,68,.4);outline:2px solid var(--red);outline-offset:-2px}
+@media (prefers-reduced-motion: reduce){
+  .breakout-flash{animation:none}
+  .breakout-flash-long{background-color:rgba(34,197,94,.25)}
+  .breakout-flash-short{background-color:rgba(239,68,68,.25)}
+}
+.alert-status{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px}
+.alert-status.armed{color:var(--muted);background:#0d1220;border:1px solid var(--border)}
+.alert-status.triggered{color:var(--green);background:#16a34a1a;border:1px solid #16a34a55}
+.alerts-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px}
+.alerts-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.alerts-form select,.alerts-form input{background:#0d1220;border:1.5px solid var(--border);border-radius:10px;
+  padding:8px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.alerts-form button{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;
+  border-radius:10px;padding:8px;font-weight:800;cursor:pointer;font-size:13px}
+.alert-row{display:flex;align-items:center;gap:10px;background:#0d1220;border:1px solid var(--border);
+  border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12.5px}
+.alert-row .sym{font-weight:800;color:#f1f5f9;min-width:52px}
+.alert-row .lvl{color:var(--muted);flex:1}
+.alert-row button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;
+  padding:3px 8px;cursor:pointer;font-size:11px}
+.alerts-empty{color:var(--muted);font-size:12.5px;padding:6px 0}
 </style>
 </head>
 <body>
@@ -216,6 +254,9 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
     </div>
     <div class="status-row">
       <div class="status-pill"><span class="live-dot"></span><span>Live</span></div>
+      <button id="alertsBtn" onclick="toggleAlertMonitoring()">
+        <span>🔔</span><span id="alertsBtnLabel">Start Price Alerts</span>
+      </button>
       <button id="refreshBtn" onclick="reloadAllWidgets()">
         <span class="spin-icon">⟳</span><span>Reload Charts</span>
       </button>
@@ -243,6 +284,21 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
   <div id="hotlistKeyBox"></div>
   <div class="hotlist-grid" id="hotlistGrid"></div>
   <div class="section-note">This list is pulled <b>live</b> from a real-time market-data feed and auto-refreshes every 5 minutes while this page stays open — ranked by which watched stocks are moving the most right now, with real earnings-calendar data folded in as a bonus signal. If the live feed is ever unavailable, it falls back to the last hand-researched list below with a note saying so. Entry/target/stop are reference levels based on the data at the moment shown — always confirm the live price on the chart before acting, and treat anything reporting earnings as gap risk: a stop-loss order does not protect you from a price gapping past it overnight.</div>
+
+  <div class="section-label">Price Alerts — Flash, Sound &amp; Notification on a Breakout</div>
+  <div class="alerts-card">
+    <div class="alerts-form">
+      <select id="alertSymbolSelect"></select>
+      <select id="alertDirectionSelect">
+        <option value="long">Long (alert above)</option>
+        <option value="short">Short (alert below)</option>
+      </select>
+      <input type="number" id="alertPriceInput" placeholder="Trigger price $" min="0" step="0.01">
+      <button type="button" onclick="addManualAlert()">+ Add Alert</button>
+    </div>
+    <div id="manualAlertsList"></div>
+  </div>
+  <div class="section-note">Click "Start Price Alerts" in the header once (it needs a click to unlock sound and ask permission for notifications). Hot List cards below get an alert automatically, using the level researched for that pick. Add your own manual alert above for anything in your watchlist. When a trigger is hit, that card/row flashes, a tone plays, and — if you allowed it — a browser notification pops, even if this tab is in the background. Each alert only fires once until you click "Start Price Alerts" again (e.g. at the start of a new session) or edit the level. This checks real prices from a live quote feed roughly every 30 seconds while monitoring is on — not simulated.</div>
 
   <div class="section-label">Dividend Corner — 6 Hottest Monthly Payers, Researched</div>
   <div class="hotlist-meta">
@@ -415,6 +471,9 @@ const HOTLIST = [
     setup:'Sept 4 close $47.05 (-0.38%), trading mid-range between its 52-week low ($36.96) and high ($50.12) — no strong pre-earnings trend either way. Since the print lands before the open, this is an ORB (opening-range breakout) candidate: let the first 15–30 min set the range, trade whichever way it breaks.',
     entry:'1st 15-min range break', target:'Size by R:R off the opening range', stop:'Opposite side of opening range',
     gapRisk:false,
+    // ORB setups don't have a fixed number until the opening range actually
+    // forms at 9:30 — no auto-alert for these until that level is known.
+    triggerPrice:null, triggerDirection:null,
     note:'Reports before the open, so you can wait for the reaction instead of holding through the gap.',
   },
   {
@@ -423,6 +482,7 @@ const HOTLIST = [
     setup:'Already up 0.71% Sept 4 (close $43.93), day range $43.26–$44.54 — modest strength heading into the print (52-week range $27.97–$57.02).',
     entry:'1st 15-min range break', target:'Size by R:R off the opening range', stop:'Opposite side of opening range',
     gapRisk:false,
+    triggerPrice:null, triggerDirection:null,
     note:'Also reports before the open — same wait-for-the-reaction logic as ABM above.',
   },
   {
@@ -431,6 +491,10 @@ const HOTLIST = [
     setup:'Sept 4 close $756.09 (-0.31%), day range $747.28–$767.00, well within its wide 52-week range ($494.64–$927.85). Print lands after the close, so direction is unknown until then — this is a gap-risk earnings hold, not an ORB setup.',
     entry:'Wait for the report — trade the gap direction the next morning, not before', target:'If gaps up: prior high ≈$767; if gaps down: prior low ≈$747', stop:'Opposite side of the pre-earnings range ($747–$767)',
     gapRisk:true,
+    // Either-direction pick: alert if price clears either side of the
+    // pre-earnings range, since direction is only known after the print.
+    triggerPrice:767.00, triggerDirection:'long',
+    triggerPriceShort:747.28, triggerDirectionShort:'short',
     note:'Reports after the close — a stop-loss order will NOT protect you from an overnight gap if you hold through the print.',
   },
   {
@@ -439,9 +503,17 @@ const HOTLIST = [
     setup:'Already down 5.56% Sept 4 (close $87.92, prior close $93.10) heading into the print — real pre-earnings weakness in a historically volatile software name (52-week range $54.17–$119.99).',
     entry:'Wait for the report — trade the gap direction the next morning, not before', target:'If gaps up: prior high ≈$91.60; if gaps down: prior low ≈$87.71', stop:'Opposite side of the pre-earnings range ($87.71–$91.60)',
     gapRisk:true,
+    triggerPrice:91.60, triggerDirection:'long',
+    triggerPriceShort:87.71, triggerDirectionShort:'short',
     note:'Already selling off into the print, which could mean downside is priced in or sets up a "sell the rumor" bounce. Reports after the close either way — a stop-loss won\'t protect an overnight hold.',
   },
 ];
+// NOTE for whoever maintains this list (including the daily research
+// routine that fills HOTLIST/paints this section): going forward, give
+// every pick a numeric triggerPrice + triggerDirection ('long'/'short') —
+// and triggerPriceShort/triggerDirectionShort for an either-direction pick
+// — the same Entry/Trigger numbers already produced each morning. Without
+// those two fields a card still displays fine, it just won't auto-alert.
 // Tries the live serverless feed first (/api/hotlist — only exists once this
 // site is deployed via a build pipeline, e.g. a GitHub-connected Netlify
 // site, not a plain drag-and-drop). Falls back to the hand-researched list
@@ -471,6 +543,7 @@ async function renderHotlist(){
 let lastHotlistData = [];
 function paintHotlist(list, isLive){
   lastHotlistData = list;
+  syncHotlistAlerts(list);
   const grid = document.getElementById('hotlistGrid');
   if(!grid) return;
   if(!list.length){
@@ -478,10 +551,11 @@ function paintHotlist(list, isLive){
     return;
   }
   grid.innerHTML = list.map(h => `
-    <div class="hot-card" onclick="openModal('${h.symbol}')">
+    <div class="hot-card" data-ticker-row="${h.symbol}" onclick="openModal('${h.symbol}')">
       <div class="hot-head">
         <span class="hot-sym">${h.symbol}</span>
         <span class="hot-dir ${h.direction==='short'?'short':'long'}">${h.direction==='watch'?'WATCH (either way)':h.direction.toUpperCase()}</span>
+        <span class="alert-status armed" id="alertStatus-${h.symbol}" title="Breakout alert status" style="${(h.triggerPrice!=null||h.triggerPriceShort!=null)?'':'display:none'}"></span>
       </div>
       <div class="hot-catalyst">${h.catalyst}</div>
       <div class="hot-setup">${h.setup}</div>
@@ -848,10 +922,11 @@ function renderPinList(){
   el.innerHTML = list.map(item => {
     const badgeClass = item.cap==='mid' ? 'mid' : 'large';
     const badgeLabel = item.cap==='mid' ? 'MID' : 'LARGE';
-    return `<div class="pin-row" onclick="openModal('${item.symbol}')">
+    return `<div class="pin-row" data-ticker-row="${item.symbol}" onclick="openModal('${item.symbol}')">
       <span class="pin-star" onclick="togglePin('${item.symbol}',event)">${isPinned(item.symbol)?'⭐':'☆'}</span>
       <span class="pin-symbol">${item.symbol}</span>
       <span class="pin-name">${item.name}</span>
+      <span class="alert-status armed" id="alertStatus-${item.symbol}" style="${manualAlerts.some(a=>a.symbol===item.symbol)?'':'display:none'}"></span>
       <span class="pin-badge ${badgeClass}">${badgeLabel}</span>
     </div>`;
   }).join('');
@@ -1075,6 +1150,195 @@ function renderJournal(){
   `;
 }
 
+// ── Breakout price alerts ───────────────────────────────────────────────
+// Watches real prices (via the /api/quote Netlify function, which proxies
+// Finnhub so the API key never reaches the browser) against a trigger
+// price for each watched ticker. When one's crossed: the matching card/row
+// (anything with data-ticker-row="SYMBOL") flashes, a tone plays, and a
+// browser notification fires. Two sources feed it: the Daily Hot List's
+// own researched trigger (see HOTLIST's triggerPrice/triggerDirection
+// fields above) and manual alerts you add below the Hot List for anything
+// in your watchlist.
+const MANUAL_ALERTS_KEY = 'tb_manual_alerts_v1';
+function loadManualAlerts(){ try{ return JSON.parse(localStorage.getItem(MANUAL_ALERTS_KEY)) || []; }catch{ return []; } }
+function saveManualAlerts(a){ try{ localStorage.setItem(MANUAL_ALERTS_KEY, JSON.stringify(a)); }catch{} }
+let manualAlerts = loadManualAlerts();
+
+// ticker -> { long, short, label, firedLong, firedShort }
+const alertLevels = new Map();
+let alertPollTimer = null;
+let alertMonitoring = false;
+let alertAudioCtx = null;
+
+function setAlertLevel(ticker, { long = null, short = null, label = '' } = {}){
+  const prev = alertLevels.get(ticker);
+  alertLevels.set(ticker, {
+    long, short, label,
+    firedLong: prev && prev.long === long ? prev.firedLong : false,
+    firedShort: prev && prev.short === short ? prev.firedShort : false,
+  });
+}
+
+// Pulls each Hot List card's researched trigger(s) into the watch list.
+// Cards with triggerPrice:null (e.g. an ORB setup with no level yet) are
+// simply not watched until a real number is supplied.
+function syncHotlistAlerts(list){
+  list.forEach(h => {
+    if(h.triggerPrice == null && h.triggerPriceShort == null) return;
+    setAlertLevel(h.symbol, {
+      long: h.triggerDirection === 'long' ? h.triggerPrice : (h.triggerDirectionShort === 'long' ? h.triggerPriceShort : null),
+      short: h.triggerDirection === 'short' ? h.triggerPrice : (h.triggerDirectionShort === 'short' ? h.triggerPriceShort : null),
+      label: h.setupName || h.catalyst || '',
+    });
+  });
+}
+
+function renderManualAlerts(){
+  const sel = document.getElementById('alertSymbolSelect');
+  if(sel && sel.options.length === 0){
+    sel.innerHTML = WATCHLIST.map(i=>`<option value="${i.symbol}">${i.symbol}</option>`).join('');
+  }
+  const listEl = document.getElementById('manualAlertsList');
+  if(!listEl) return;
+  if(manualAlerts.length === 0){
+    listEl.innerHTML = '<div class="alerts-empty">No manual alerts yet — pick a symbol above and add a trigger price.</div>';
+  } else {
+    listEl.innerHTML = manualAlerts.map((a,i) => `
+      <div class="alert-row">
+        <span class="sym">${a.symbol}</span>
+        <span class="lvl">${a.direction==='short' ? 'Short — alert below' : 'Long — alert above'} $${a.price.toFixed(2)}</span>
+        <button type="button" onclick="removeManualAlert(${i})">Remove</button>
+      </div>`).join('');
+  }
+  // apply manual alerts into the live watch map
+  manualAlerts.forEach(a => {
+    setAlertLevel(a.symbol, {
+      long: a.direction==='long' ? a.price : (alertLevels.get(a.symbol)||{}).long ?? null,
+      short: a.direction==='short' ? a.price : (alertLevels.get(a.symbol)||{}).short ?? null,
+      label: 'Manual alert',
+    });
+  });
+}
+function addManualAlert(){
+  const symbol = document.getElementById('alertSymbolSelect').value;
+  const direction = document.getElementById('alertDirectionSelect').value;
+  const price = parseFloat(document.getElementById('alertPriceInput').value);
+  if(!symbol || !price){ alert('Pick a symbol and enter a trigger price.'); return; }
+  manualAlerts.push({ symbol, direction, price });
+  saveManualAlerts(manualAlerts);
+  document.getElementById('alertPriceInput').value = '';
+  renderManualAlerts();
+  renderPinList();
+}
+function removeManualAlert(i){
+  manualAlerts.splice(i,1);
+  saveManualAlerts(manualAlerts);
+  renderManualAlerts();
+  renderPinList();
+}
+
+function flashTickerRow(ticker, direction){
+  const el = document.querySelector(`[data-ticker-row="${CSS.escape(ticker)}"]`);
+  if(!el) return;
+  const sideClass = direction==='short' ? 'breakout-flash-short' : 'breakout-flash-long';
+  el.classList.remove('breakout-flash','breakout-flash-long','breakout-flash-short');
+  void el.offsetWidth;
+  el.classList.add('breakout-flash', sideClass);
+}
+function playAlertTone(direction){
+  try{
+    if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const ctx = alertAudioCtx;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sine';
+    const [f1,f2] = direction==='short' ? [660,440] : [660,880];
+    osc.frequency.setValueAtTime(f1, ctx.currentTime);
+    osc.frequency.setValueAtTime(f2, ctx.currentTime+0.12);
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.4);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime+0.4);
+  }catch(e){ console.warn('[alerts] tone failed', e); }
+}
+function notifyBreakout(ticker, direction, price, label){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const verb = direction==='short' ? 'broke down through' : 'broke out above';
+  try{
+    const n = new Notification(`${ticker} ${verb} its trigger`, {
+      body: `${ticker} hit $${price.toFixed(2)}${label ? ' — '+label : ''}`,
+      tag: `breakout-${ticker}-${direction}`, renotify: true,
+    });
+    n.onclick = () => window.focus();
+  }catch(e){ console.warn('[alerts] notification failed', e); }
+}
+function updateAlertStatusBadge(ticker, triggered){
+  const el = document.getElementById('alertStatus-'+ticker);
+  if(!el) return;
+  el.style.display = '';
+  el.textContent = triggered ? 'TRIGGERED' : 'ARMED';
+  el.className = 'alert-status ' + (triggered ? 'triggered' : 'armed');
+}
+
+async function fetchQuotes(symbols){
+  if(!symbols.length) return {};
+  try{
+    const res = await fetch('/api/quote?symbols=' + encodeURIComponent(symbols.join(',')));
+    if(!res.ok) throw new Error('http-'+res.status);
+    return await res.json(); // expected: { SYMBOL: { price: number }, ... }
+  }catch(e){
+    console.warn('[alerts] quote fetch failed', e);
+    return {};
+  }
+}
+
+async function checkAlerts(){
+  const symbols = [...alertLevels.keys()];
+  const quotes = await fetchQuotes(symbols);
+  for(const ticker of symbols){
+    const level = alertLevels.get(ticker);
+    const price = quotes[ticker] && quotes[ticker].price;
+    if(price == null || isNaN(price)){ continue; }
+    let firedThisCheck = false;
+    if(level.long != null && !level.firedLong && price >= level.long){
+      level.firedLong = true; firedThisCheck = true;
+      flashTickerRow(ticker,'long'); playAlertTone('long'); notifyBreakout(ticker,'long',price,level.label);
+    }
+    if(level.short != null && !level.firedShort && price <= level.short){
+      level.firedShort = true; firedThisCheck = true;
+      flashTickerRow(ticker,'short'); playAlertTone('short'); notifyBreakout(ticker,'short',price,level.label);
+    }
+    updateAlertStatusBadge(ticker, level.firedLong || level.firedShort);
+    if(firedThisCheck) console.info(`[alerts] ${ticker} triggered at $${price}`);
+  }
+}
+
+function toggleAlertMonitoring(){
+  const btn = document.getElementById('alertsBtn');
+  const label = document.getElementById('alertsBtnLabel');
+  if(alertMonitoring){
+    clearInterval(alertPollTimer);
+    alertPollTimer = null;
+    alertMonitoring = false;
+    btn.classList.remove('on');
+    label.textContent = 'Start Price Alerts';
+    return;
+  }
+  // Re-arm every level fresh for this monitoring session.
+  for(const level of alertLevels.values()){ level.firedLong = false; level.firedShort = false; }
+  document.querySelectorAll('.alert-status').forEach(el=>{ el.className='alert-status armed'; el.textContent='ARMED'; });
+  // Unlock audio (needs a user gesture) and ask for notification permission.
+  if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(alertAudioCtx.state === 'suspended') alertAudioCtx.resume();
+  if('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+
+  alertMonitoring = true;
+  btn.classList.add('on');
+  label.textContent = 'Alerts Running (30s)';
+  checkAlerts();
+  alertPollTimer = setInterval(checkAlerts, 30000); // 30s — gentle on the free Finnhub tier
+}
+
 // ── init ──
 function init(){
   renderHotlist();
@@ -1089,6 +1353,7 @@ function init(){
   renderPinList();
   recalcPosition();
   renderJournal();
+  renderManualAlerts();
 }
 init();
 </script>
