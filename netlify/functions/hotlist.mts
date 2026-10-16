@@ -116,6 +116,11 @@ export default async (req: Request, context: Context) => {
     const dir = q.dp >= 0 ? "long" : "short";
     const rangeWidth = (q.h - q.l) || (q.c * 0.02);
     const breakoutTarget = dir === "long" ? (q.h + rangeWidth) : (q.l - rangeWidth);
+    // The same number already shown in the Entry field below, exposed here
+    // as a plain numeric value (plus direction) so the breakout-alert
+    // engine on the page can auto-arm each pick without any manual entry —
+    // "break above today's high" / "break below today's low".
+    const triggerPrice = dir === "long" ? q.h : q.l;
     let catalyst;
     if (hasEarnings) {
       const info = earningsInfo[sym];
@@ -131,6 +136,8 @@ export default async (req: Request, context: Context) => {
       target: `≈$${breakoutTarget.toFixed(2)} (today's range projected past the breakout)`,
       stop: dir === "long" ? `$${q.l.toFixed(2)} (today's low)` : `$${q.h.toFixed(2)} (today's high)`,
       gapRisk: hasEarnings,
+      triggerPrice,
+      triggerDirection: dir,
       note: hasEarnings
         ? "Reports earnings today — if that's after the close and you hold through it, a stop-loss will NOT protect you from an overnight gap."
         : "Ranked purely by live % move — confirm this is a real breakout on the chart, not just noise, before acting.",
