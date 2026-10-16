@@ -1450,35 +1450,59 @@ async function initPushButtonState(){
   }
 }
 
-function toggleAlertMonitoring(){
+// Starts the 30s price-check loop. Called automatically once the page
+// loads AND the Hot List has its live breakout levels in hand (see init()
+// below), so today's picks are armed without you having to click anything.
+// Sound still needs a one-time click anywhere on the page to unlock —
+// browsers block audio before any user interaction — handled by the
+// one-time listener registered in init().
+function startAlertMonitoring(){
+  if(alertMonitoring) return;
   const btn = document.getElementById('alertsBtn');
   const label = document.getElementById('alertsBtnLabel');
-  if(alertMonitoring){
-    clearInterval(alertPollTimer);
-    alertPollTimer = null;
-    alertMonitoring = false;
-    btn.classList.remove('on');
-    label.textContent = 'Start Price Alerts';
-    return;
-  }
   // Re-arm every level fresh for this monitoring session.
   for(const level of alertLevels.values()){ level.firedLong = false; level.firedShort = false; }
   document.querySelectorAll('.alert-status').forEach(el=>{ el.className='alert-status armed'; el.textContent='ARMED'; });
-  // Unlock audio (needs a user gesture) and ask for notification permission.
-  if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  if(alertAudioCtx.state === 'suspended') alertAudioCtx.resume();
   if('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 
   alertMonitoring = true;
-  btn.classList.add('on');
-  label.textContent = 'Alerts Running (30s)';
+  if(btn) btn.classList.add('on');
+  if(label) label.textContent = 'Alerts Running (30s)';
   checkAlerts();
   alertPollTimer = setInterval(checkAlerts, 30000); // 30s — gentle on the free Finnhub tier
+}
+function stopAlertMonitoring(){
+  if(!alertMonitoring) return;
+  clearInterval(alertPollTimer);
+  alertPollTimer = null;
+  alertMonitoring = false;
+  const btn = document.getElementById('alertsBtn');
+  const label = document.getElementById('alertsBtnLabel');
+  if(btn) btn.classList.remove('on');
+  if(label) label.textContent = 'Start Price Alerts';
+}
+function toggleAlertMonitoring(){
+  if(alertMonitoring) stopAlertMonitoring();
+  else startAlertMonitoring();
+}
+// Unlocks the Web Audio tone on the visitor's very first click/tap/keypress
+// anywhere on the page — required because browsers refuse to play sound
+// until there has been some user interaction, even though monitoring
+// itself has already started automatically by then.
+function unlockAlertAudioOnce(){
+  if(!alertAudioCtx) alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(alertAudioCtx.state === 'suspended') alertAudioCtx.resume();
+  document.removeEventListener('click', unlockAlertAudioOnce);
+  document.removeEventListener('keydown', unlockAlertAudioOnce);
+  document.removeEventListener('touchstart', unlockAlertAudioOnce);
 }
 
 // ── init ──
 function init(){
-  renderHotlist();
+  // Once the live Hot List finishes loading (its breakout levels are
+  // armed into alertLevels as part of that load — see syncHotlistAlerts),
+  // start price-alert monitoring automatically. No click needed.
+  renderHotlist().then(startAlertMonitoring);
   setInterval(renderHotlist, 5*60*1000); // auto-refresh the live Hot List every 5 minutes
   renderDividends();
   mountTickerTape();
@@ -1492,6 +1516,9 @@ function init(){
   renderJournal();
   renderManualAlerts();
   initPushButtonState();
+  document.addEventListener('click', unlockAlertAudioOnce);
+  document.addEventListener('keydown', unlockAlertAudioOnce);
+  document.addEventListener('touchstart', unlockAlertAudioOnce);
 }
 init();
 </script>
