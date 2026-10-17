@@ -5,9 +5,9 @@
 // (check-alerts-cron.js) can check prices and send push notifications
 // even when no Trading Buddy tab is open.
 //
-// Uses Netlify Blobs — Netlify's built-in key/value store. No extra
-// signup or env vars needed for this part; it works automatically on any
-// Netlify site.
+// Uses Netlify Blobs — Netlify's built-in key/value store, opened via
+// _blobs.js (see that file if you ever hit a MissingBlobsEnvironmentError;
+// it explains the BLOBS_SITE_ID / BLOBS_TOKEN env vars that fix it).
 //
 // Request:  POST /api/save-subscription
 //           { "subscription": <PushSubscription JSON from the browser>,
@@ -18,8 +18,8 @@
 // that device's subscription (used when the user turns phone alerts off).
 // -----------------------------------------------------------------------
 
-const { getStore } = require("@netlify/blobs");
 const crypto = require("crypto");
+const { getAlertStore } = require("./_blobs.js");
 
 function keyFor(endpoint) {
   return crypto.createHash("sha256").update(endpoint).digest("hex");
@@ -42,7 +42,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "subscription with endpoint is required" }) };
   }
 
-  const store = getStore("push-subscriptions");
+  let store;
+  try {
+    store = getAlertStore("push-subscriptions");
+  } catch (e) {
+    console.error("save-subscription: could not open Blobs store", e);
+    return { statusCode: 500, body: JSON.stringify({ error: "storage-unavailable", message: String(e.message || e) }) };
+  }
   const key = keyFor(subscription.endpoint);
 
   if (event.httpMethod === "DELETE") {
