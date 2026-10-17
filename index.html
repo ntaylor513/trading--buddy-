@@ -191,6 +191,7 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .div-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px}
 .div-card:hover{border-color:var(--gold)}
 .div-yield{font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;background:#f59e0b18;color:var(--gold);border:1px solid #f59e0b33}
+.div-held-badge{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px;color:var(--cyan);background:#38bdf81a;border:1px solid #38bdf855}
 .div-name{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px}
 .div-dates{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
 .div-news{font-size:11.5px;color:var(--cyan);margin-bottom:8px;line-height:1.5}
@@ -214,14 +215,10 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 #pushBtn.on{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-color:transparent;
   box-shadow:0 0 10px rgba(37,99,235,.35)}
 #pushBtn:disabled{opacity:.45;cursor:default}
-#emailAlertBtn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);
+#shareBtn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);
   padding:8px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;
-  display:flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap}
-#emailAlertBtn.on{background:linear-gradient(135deg,var(--purple,#7c3aed),#5b21b6);color:#fff;border-color:transparent;
-  box-shadow:0 0 10px rgba(124,58,237,.35)}
-#emailAlertBtn:disabled{opacity:.45;cursor:default}
-#emailAlertInput{background:var(--card);border:1.5px solid var(--border);color:var(--text);
-  padding:8px 12px;border-radius:20px;font-size:12px}
+  display:flex;align-items:center;gap:6px;transition:.15s}
+#shareBtn.copied{background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border-color:transparent}
 @keyframes breakoutFlashPulse{
   0%,100%{background-color:transparent}
   15%{background-color:var(--breakout-flash-color,rgba(245,158,11,.5))}
@@ -239,6 +236,7 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 }
 .alert-status{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-left:6px}
 .alert-status.armed{color:var(--muted);background:#0d1220;border:1px solid var(--border)}
+.alert-status.near{color:var(--gold);background:#f59e0b1a;border:1px solid #f59e0b55}
 .alert-status.triggered{color:var(--green);background:#16a34a1a;border:1px solid #16a34a55}
 .alerts-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px}
 .alerts-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
@@ -276,6 +274,9 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
       </button>
       <button id="refreshBtn" onclick="reloadAllWidgets()">
         <span class="spin-icon">⟳</span><span>Reload Charts</span>
+      </button>
+      <button id="shareBtn" onclick="shareApp()">
+        <span>🔗</span><span id="shareBtnLabel">Share</span>
       </button>
     </div>
   </div>
@@ -315,16 +316,13 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
       <button type="button" onclick="addManualAlert()">+ Add Alert</button>
     </div>
     <div id="manualAlertsList"></div>
-    <div class="alerts-form" id="emailAlertForm" style="margin-top:10px;">
-      <input type="email" id="emailAlertInput" placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:220px;">
-      <button type="button" id="emailAlertBtn" onclick="toggleEmailAlerts()"><span>✉️</span><span id="emailAlertBtnLabel">Email Alerts Off</span></button>
-    </div>
   </div>
-  <div class="section-note">Click "Start Price Alerts" in the header once (it needs a click to unlock sound and ask permission for notifications). Hot List cards below get an alert automatically, using the level researched for that pick. Add your own manual alert above for anything in your watchlist. When a trigger is hit, that card/row flashes, a tone plays, and — if you allowed it — a browser notification pops, even if this tab is in the background. Each alert only fires once until you click "Start Price Alerts" again (e.g. at the start of a new session) or edit the level. This checks real prices from a live quote feed roughly every 30 seconds while monitoring is on — not simulated. Enter an email above and turn "Email Alerts" on to also get these the same breakout alerts sent to your inbox from the server — this works even if this tab, this browser, and this device are all closed, unlike the flash/sound/phone-push alerts above which need at least one of those open.</div>
+  <div class="section-note">Click "Start Price Alerts" in the header once (it needs a click to unlock sound and ask permission for notifications). Hot List cards below get an alert automatically, using the level researched for that pick. Add your own manual alert above for anything in your watchlist. When a trigger is hit, that card/row flashes, a tone plays, and — if you allowed it — a browser notification pops, even if this tab is in the background. Each alert only fires once until you click "Start Price Alerts" again (e.g. at the start of a new session) or edit the level. This checks real prices from a live quote feed roughly every 30 seconds while monitoring is on — not simulated.</div>
 
-  <div class="section-label">Dividend Corner — 6 Hottest Monthly Payers, Researched</div>
+  <div class="section-label">Dividend Corner — Monthly Payers</div>
   <div class="hotlist-meta">
     <div class="hotlist-asof" id="dividendAsOf"></div>
+    <button class="hotlist-refresh" onclick="renderDividends()">↻ Refresh now</button>
   </div>
   <div class="dividend-grid" id="dividendGrid"></div>
   <div class="section-note">Hand-researched the same way as the Hot List above (real prices, real declared dividends and dates) — not auto-updating, refreshed whenever you ask me to "refresh the dividend corner." "Hottest" here means highest current yield among liquid, optionable monthly payers — high yield usually means higher risk (rate-sensitive mortgage REITs and business development companies), so this is a starting list to research further, not a buy list. I don't have access to live options-chain pricing, so the entry/exit strikes below are structural suggestions (round strikes near the current price, standard 30–45 day expirations) — always check the actual bid/ask premium in your broker before placing a trade. The position-size box is pure math done in your browser: it doesn't know your account or risk tolerance.</div>
@@ -599,49 +597,62 @@ function paintHotlist(list, isLive){
 // suggestions (round numbers near the current price), not live premiums —
 // I don't have a free live options-chain data source, so exact premiums
 // always need to be checked in your own broker before placing a trade.
-const DIVIDEND_AS_OF = 'Researched evening of Sept 9, 2026';
-const DIVIDENDS = [
+// This is informational, not financial advice — none of this is a
+// recommendation to buy, sell, or hold anything.
+//
+// MAINTENANCE POLICY: this list isn't fixed. On request (or when a name
+// clearly stops fitting — see the STAG note below), a weaker entry gets
+// swapped for a stronger candidate. The one hard rule: an entry with
+// held:true is NEVER removed, no matter how it ranks — it can only be
+// supplemented by adding alongside it. Flip held to true for any symbol
+// you actually hold a position in, and it's permanently protected from
+// a future swap; a small "HELD" badge on its card reflects that.
+const DIVIDEND_AS_OF = 'Rebalanced Oct 17, 2026';
+// `let`, not `const` — renderDividends() below overwrites this with the
+// live-refreshed roster from /api/dividends when that succeeds. This
+// array is the fallback seed if that fetch fails or hasn't run yet.
+let DIVIDENDS = [
   {
-    symbol:'AGNC', name:'AGNC Investment Corp.', tv:'NASDAQ:AGNC', price:10.51, monthlyDiv:0.12, yieldPct:13.70,
-    exDiv:'Sept 30, 2026', payDate:'Oct 9, 2026',
-    news:'Declared its $0.12/share monthly dividend for September 2026 — unchanged for over three years running.',
+    symbol:'AGNC', name:'AGNC Investment Corp.', tv:'NASDAQ:AGNC', price:8.72, monthlyDiv:0.12, yieldPct:16.51, held:false,
+    exDiv:'Oct 30, 2026', payDate:'Nov 10, 2026',
+    news:'Declared its $0.12/share monthly dividend again — unchanged since late 2021.',
     strategyLabel:'Wheel', strategyNote:'Cheap per-share price makes 100-share lots affordable — classic wheel candidate. A mortgage REIT, so it moves with interest-rate expectations more than company news.',
-    entry:'Sell a $10 cash-secured put, ~30–45 days out', exit:'If assigned at $10, sell an $11 covered call the next cycle',
+    entry:'Sell an $8.50 cash-secured put, ~30–45 days out', exit:'If assigned at $8.50, sell a $9 covered call the next cycle',
   },
   {
-    symbol:'O', name:'Realty Income', tv:'NYSE:O', price:60.11, monthlyDiv:0.2715, yieldPct:5.40,
-    exDiv:'Sept 30, 2026', payDate:'Oct 15, 2026',
-    news:'Declared its 674th consecutive monthly dividend in Sept 2026 — the 136th increase since its 1994 NYSE listing.',
-    strategyLabel:'Wheel', strategyNote:'Lower yield but very high dividend-growth quality ("The Monthly Dividend Company") — a steadier, lower-drama name to run the wheel on for extra income on top of the payout.',
-    entry:'Sell a $58 cash-secured put, ~30–45 days out', exit:'If assigned at $58, sell a $62 covered call the next cycle',
+    symbol:'O', name:'Realty Income', tv:'NYSE:O', price:56.08, monthlyDiv:0.2715, yieldPct:5.81, held:false,
+    exDiv:'Oct 30, 2026', payDate:'Nov 13, 2026',
+    news:'Declared its regular monthly dividend — now on 22 straight years of dividend growth ("The Monthly Dividend Company").',
+    strategyLabel:'Wheel', strategyNote:'Lower yield but very high dividend-growth quality — a steadier, lower-drama name to run the wheel on for extra income on top of the payout.',
+    entry:'Sell a $55 cash-secured put, ~30–45 days out', exit:'If assigned at $55, sell a $58 covered call the next cycle',
   },
   {
-    symbol:'MAIN', name:'Main Street Capital', tv:'NYSE:MAIN', price:56.33, monthlyDiv:0.265, yieldPct:7.78,
-    exDiv:'Sept 2026 (monthly)', payDate:'Paid monthly',
-    news:'A business development company (BDC) lending to lower-middle-market private companies — has a long history of maintaining or raising its regular monthly dividend plus periodic special dividends.',
+    symbol:'MAIN', name:'Main Street Capital', tv:'NYSE:MAIN', price:53.83, monthlyDiv:0.265, yieldPct:8.14, held:false,
+    exDiv:'Nov 6, 2026', payDate:'Nov 13, 2026',
+    news:'Raised its regular monthly dividend to $0.265/share (from $0.260) starting July 2026, and continues paying a supplemental dividend quarterly ($0.30/share most recently in Sept 2026) on top of the regular monthly payout.',
     strategyLabel:'Covered Call', strategyNote:'Trades in a fairly tight range for a BDC — better suited to owning shares outright and selling calls above resistance than an aggressive wheel.',
-    entry:'Buy shares near $55–56', exit:'Sell a $58–59 covered call, ~30–45 days out',
+    entry:'Buy shares near $53–54', exit:'Sell a $56 covered call, ~30–45 days out',
   },
   {
-    symbol:'STAG', name:'STAG Industrial', tv:'NYSE:STAG', price:37.18, monthlyDiv:0.13, yieldPct:4.20,
-    exDiv:'Sept 30, 2026', payDate:'Oct 15, 2026',
-    news:'Industrial/warehouse REIT — lower yield than the others here, but backed by real logistics-property rent rolls rather than financial leverage.',
-    strategyLabel:'Covered Call', strategyNote:'Lowest yield of the six, but the steadiest underlying business — a "core holding plus a little extra income" name rather than an income-maximizer.',
-    entry:'Buy shares near $36–37', exit:'Sell a $39 covered call, ~30–45 days out',
+    symbol:'LTC', name:'LTC Properties', tv:'NYSE:LTC', price:43.68, monthlyDiv:0.19, yieldPct:5.22, held:false,
+    exDiv:'Oct 22, 2026', payDate:'Oct 30, 2026',
+    news:'Added in place of STAG Industrial, which announced in January 2026 that it was shifting from monthly to quarterly dividends — disqualifying it from a monthly-payers list regardless of yield. LTC is a healthcare REIT (senior housing + skilled nursing operators) that has paid an unchanged $0.19/share monthly dividend since early 2022, with a reasonable ~83% payout ratio for a REIT.',
+    strategyLabel:'Wheel', strategyNote:'Steadier, lower-drama income name — the tradeoff for its long run of unchanged monthly payments is a middling (not high) yield. Check the options chain\'s open interest before sizing up, as REIT options can be thinner than large-cap names.',
+    entry:'Sell a $42 cash-secured put, ~30–45 days out', exit:'If assigned at $42, sell a $46 covered call the next cycle',
   },
   {
-    symbol:'GLAD', name:'Gladstone Capital', tv:'NASDAQ:GLAD', price:19.68, monthlyDiv:0.15, yieldPct:9.15,
-    exDiv:'Sept 21, 2026', payDate:'Sept 30, 2026',
-    news:'Small-cap BDC lending to lower-middle-market businesses — higher yield than MAIN, with a smaller, less-diversified loan book.',
+    symbol:'GLAD', name:'Gladstone Capital', tv:'NASDAQ:GLAD', price:18.88, monthlyDiv:0.15, yieldPct:9.53, held:false,
+    exDiv:'Oct 23, 2026', payDate:'Oct 30, 2026',
+    news:'Regular monthly rate has held at $0.15/share since an October 2025 reduction (down from $0.165); also paid an extra $0.18/share supplemental distribution in Sept 2026 on top of the regular monthly payout.',
     strategyLabel:'Wheel', strategyNote:'Mid-priced and volatile enough for decent option premium without being as thinly traded as the smallest BDCs — check the options chain\'s open interest before sizing up.',
-    entry:'Sell a $19 cash-secured put, ~30–45 days out', exit:'If assigned at $19, sell a $21 covered call the next cycle',
+    entry:'Sell an $18 cash-secured put, ~30–45 days out', exit:'If assigned at $18, sell a $20 covered call the next cycle',
   },
   {
-    symbol:'HRZN', name:'Horizon Technology Finance', tv:'NASDAQ:HRZN', price:4.79, monthlyDiv:0.09, yieldPct:15.03,
+    symbol:'HRZN', name:'Horizon Technology Finance', tv:'NASDAQ:HRZN', price:4.29, monthlyDiv:0.09, yieldPct:25.17, held:false,
     exDiv:'Nov 17, 2026', payDate:'Dec 15, 2026',
-    news:'Venture-debt BDC lending to VC-backed life-science and tech companies — highest yield on this list, but venture-lending losses can hit the dividend harder than a typical BDC.',
-    strategyLabel:'Wheel (caution)', strategyNote:'Very cheap per share, but options on a sub-$5 stock are often thin — confirm real bid/ask spreads and open interest before committing size, or this may not be practically tradeable as an option play.',
-    entry:'Sell a $4.50–5.00 cash-secured put, ~30–45 days out (if liquidity supports it)', exit:'If assigned, sell a $5.50 covered call the next cycle',
+    news:'Cut its monthly dividend by about 45% in March 2026 (from $0.11 to $0.06/share), then partially restored it to the current $0.09/share starting June 2026. Venture-debt BDC lending to VC-backed life-science and tech companies — highest headline yield on this list, but that cut history is exactly why: venture-lending losses hit this dividend harder than a typical BDC\'s.',
+    strategyLabel:'Wheel (caution)', strategyNote:'Very cheap per share, but options on a sub-$5 stock are often thin — confirm real bid/ask spreads and open interest before committing size, or this may not be practically tradeable as an option play. Given the recent cut, this is the shakiest name on this list — worth watching as the next candidate to swap if a stronger replacement turns up.',
+    entry:'Sell a $4.00–4.50 cash-secured put, ~30–45 days out (if liquidity supports it)', exit:'If assigned, sell a $5.00 covered call the next cycle',
   },
 ];
 function calcDivIncome(symbol){
@@ -656,15 +667,35 @@ function calcDivIncome(symbol){
   if(sharesEl) sharesEl.textContent = shares.toLocaleString();
   if(incomeEl) incomeEl.textContent = '$'+income.toFixed(2)+'/mo';
 }
-function renderDividends(){
+// Tries the live auto-refreshed feed first (/api/dividends — updated
+// daily after the close by refresh-dividends-cron.js). Falls back to
+// the hand-researched DIVIDENDS seed above if that fetch fails or the
+// cron hasn't run yet, same fallback pattern as renderHotlist().
+async function renderDividends(){
   const asOf = document.getElementById('dividendAsOf');
-  if(asOf) asOf.textContent = DIVIDEND_AS_OF;
+  try{
+    const res = await fetch('/api/dividends');
+    if(!res.ok) throw new Error('http-'+res.status);
+    const data = await res.json();
+    if(!data || !Array.isArray(data.items) || !data.items.length) throw new Error('empty-response');
+    DIVIDENDS = data.items;
+    if(asOf){
+      const when = data.refreshedAt ? new Date(data.refreshedAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      asOf.textContent = data.live ? `Live — refreshed ${when}` : DIVIDEND_AS_OF + ' (auto-refresh not set up yet)';
+    }
+  }catch(e){
+    console.warn('[dividends] live fetch failed, showing last researched data', e);
+    if(asOf) asOf.textContent = DIVIDEND_AS_OF + ' (live feed unavailable — showing last researched data)';
+  }
+  paintDividends();
+}
+function paintDividends(){
   const grid = document.getElementById('dividendGrid');
   if(!grid) return;
   grid.innerHTML = DIVIDENDS.map(d => `
     <div class="div-card">
       <div class="hot-head">
-        <span class="hot-sym">${d.symbol}</span>
+        <span class="hot-sym">${d.symbol}</span>${d.held ? ' <span class="div-held-badge">HELD</span>' : ''}
         <span class="div-yield">${d.yieldPct.toFixed(2)}% yield</span>
       </div>
       <div class="div-name">${d.name} · $${d.price.toFixed(2)}/share</div>
@@ -920,6 +951,53 @@ function reloadAllWidgets(){
     if(item){ mountAdvancedChart(item.tv); mountMultiTimeframe(item.tv); mountTechnicalRating(item.tv); }
   }
   setTimeout(()=>btn.classList.remove('spinning'), 900);
+}
+
+// ── Share ────────────────────────────────────────────────────────────
+// One shared app, one URL — there's no login, so "sharing" just means
+// handing someone the link. Everyone who opens it sees the same live
+// Hot List and Dividend Corner; their own push subscription (tied to
+// their browser) and their own email alert address are already tracked
+// separately on the server (see save-subscription.js / save-email-alert.js),
+// so family members setting up their own alerts won't collide with
+// yours. The trade journal and manual alerts are saved per-browser via
+// localStorage, so those also naturally stay separate per device.
+async function shareApp(){
+  const btn = document.getElementById('shareBtn');
+  const label = document.getElementById('shareBtnLabel');
+  const url = window.location.origin + window.location.pathname;
+  const shareData = {
+    title: 'Trading Buddy',
+    text: 'Check out Trading Buddy — live Hot List, breakout alerts, and dividend tracker.',
+    url,
+  };
+
+  // Native share sheet (phones, and most modern desktop browsers) —
+  // lets someone pick Messages/WhatsApp/email/etc. directly.
+  if(navigator.share){
+    try{
+      await navigator.share(shareData);
+      return; // user picked an app (or cancelled) — nothing else to do
+    }catch(e){
+      if(e && e.name === 'AbortError') return; // they cancelled the share sheet — not an error
+      console.warn('[share] navigator.share failed, falling back to copy', e);
+    }
+  }
+
+  // Fallback: copy the link to the clipboard so it can be pasted into
+  // a text/email manually.
+  try{
+    await navigator.clipboard.writeText(url);
+    if(label){
+      const prev = label.textContent;
+      btn.classList.add('copied');
+      label.textContent = 'Link Copied!';
+      setTimeout(()=>{ btn.classList.remove('copied'); label.textContent = prev; }, 2200);
+    }
+  }catch(e){
+    // Oldest-browser fallback — a manual-copy prompt always works.
+    window.prompt('Copy this link to share Trading Buddy:', url);
+  }
 }
 
 // ── filtering ──
@@ -1198,6 +1276,12 @@ function setAlertLevel(ticker, { long = null, short = null, label = '' } = {}){
     long, short, label,
     firedLong: prev && prev.long === long ? prev.firedLong : false,
     firedShort: prev && prev.short === short ? prev.firedShort : false,
+    // Tracks whether we've already sent the "getting close" heads-up for
+    // the CURRENT approach toward this level, so it fires once per
+    // approach rather than on every poll while price hovers near the
+    // trigger. Resets below once price clearly retreats away from it.
+    nearNotifiedLong: prev && prev.long === long ? prev.nearNotifiedLong : false,
+    nearNotifiedShort: prev && prev.short === short ? prev.nearNotifiedShort : false,
   });
 }
 
@@ -1214,7 +1298,6 @@ function syncHotlistAlerts(list){
     });
   });
   syncPushSubscription();
-  syncEmailAlertSubscription();
 }
 
 function renderManualAlerts(){
@@ -1258,7 +1341,6 @@ function addManualAlert(){
   renderManualAlerts();
   renderPinList();
   syncPushSubscription();
-  syncEmailAlertSubscription();
 }
 function removeManualAlert(i){
   manualAlerts.splice(i,1);
@@ -1266,7 +1348,6 @@ function removeManualAlert(i){
   renderManualAlerts();
   renderPinList();
   syncPushSubscription();
-  syncEmailAlertSubscription();
 }
 
 function flashTickerRow(ticker, direction){
@@ -1304,12 +1385,31 @@ function notifyBreakout(ticker, direction, price, label){
     n.onclick = () => window.focus();
   }catch(e){ console.warn('[alerts] notification failed', e); }
 }
-function updateAlertStatusBadge(ticker, triggered){
+function notifyApproaching(ticker, direction, price, trigger, label){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const verb = direction==='short' ? 'approaching its downside trigger' : 'approaching its breakout trigger';
+  try{
+    const n = new Notification(`${ticker} ${verb}`, {
+      body: `${ticker} is at $${price.toFixed(2)}, trigger is $${trigger.toFixed(2)}${label ? ' — '+label : ''}`,
+      tag: `approaching-${ticker}-${direction}`, renotify: false,
+    });
+    n.onclick = () => window.focus();
+  }catch(e){ console.warn('[alerts] approaching notification failed', e); }
+}
+function updateAlertStatusBadge(ticker, triggered, near){
   const el = document.getElementById('alertStatus-'+ticker);
   if(!el) return;
   el.style.display = '';
-  el.textContent = triggered ? 'TRIGGERED' : 'ARMED';
-  el.className = 'alert-status ' + (triggered ? 'triggered' : 'armed');
+  if(triggered){
+    el.textContent = 'TRIGGERED';
+    el.className = 'alert-status triggered';
+  } else if(near){
+    el.textContent = 'NEAR';
+    el.className = 'alert-status near';
+  } else {
+    el.textContent = 'ARMED';
+    el.className = 'alert-status armed';
+  }
 }
 
 async function fetchQuotes(symbols){
@@ -1324,6 +1424,13 @@ async function fetchQuotes(symbols){
   }
 }
 
+// Within this fraction of the trigger (and hasn't crossed it) counts as
+// "approaching" — e.g. 0.01 = within 1%. A near heads-up won't re-fire
+// until price retreats back out past RESET_FRACTION, so a slow grind up
+// to the trigger doesn't spam a notification on every poll.
+const NEAR_MISS_FRACTION = 0.01;
+const NEAR_MISS_RESET_FRACTION = 0.02;
+
 async function checkAlerts(){
   const symbols = [...alertLevels.keys()];
   const quotes = await fetchQuotes(symbols);
@@ -1332,15 +1439,43 @@ async function checkAlerts(){
     const price = quotes[ticker] && quotes[ticker].price;
     if(price == null || isNaN(price)){ continue; }
     let firedThisCheck = false;
+    let nearThisCheck = false;
+
     if(level.long != null && !level.firedLong && price >= level.long){
       level.firedLong = true; firedThisCheck = true;
       flashTickerRow(ticker,'long'); playAlertTone('long'); notifyBreakout(ticker,'long',price,level.label);
+    } else if(level.long != null && !level.firedLong){
+      const nearThreshold = level.long * (1 - NEAR_MISS_FRACTION);
+      const resetThreshold = level.long * (1 - NEAR_MISS_RESET_FRACTION);
+      if(price >= nearThreshold){
+        nearThisCheck = true;
+        if(!level.nearNotifiedLong){
+          level.nearNotifiedLong = true;
+          notifyApproaching(ticker,'long',price,level.long,level.label);
+        }
+      } else if(price < resetThreshold){
+        level.nearNotifiedLong = false;
+      }
     }
+
     if(level.short != null && !level.firedShort && price <= level.short){
       level.firedShort = true; firedThisCheck = true;
       flashTickerRow(ticker,'short'); playAlertTone('short'); notifyBreakout(ticker,'short',price,level.label);
+    } else if(level.short != null && !level.firedShort){
+      const nearThreshold = level.short * (1 + NEAR_MISS_FRACTION);
+      const resetThreshold = level.short * (1 + NEAR_MISS_RESET_FRACTION);
+      if(price <= nearThreshold){
+        nearThisCheck = true;
+        if(!level.nearNotifiedShort){
+          level.nearNotifiedShort = true;
+          notifyApproaching(ticker,'short',price,level.short,level.label);
+        }
+      } else if(price > resetThreshold){
+        level.nearNotifiedShort = false;
+      }
     }
-    updateAlertStatusBadge(ticker, level.firedLong || level.firedShort);
+
+    updateAlertStatusBadge(ticker, level.firedLong || level.firedShort, nearThisCheck);
     if(firedThisCheck) console.info(`[alerts] ${ticker} triggered at $${price}`);
   }
 }
@@ -1397,93 +1532,6 @@ async function syncPushSubscription(){
       body: JSON.stringify({ subscription: sub, alerts: buildAlertListForServer() }),
     });
   }catch(e){ console.warn('[push] sync failed', e); }
-}
-
-// ── Email alerts ─────────────────────────────────────────────────────
-// A separate channel from phone push above — no browser permission or
-// service worker needed, works even if this device/browser never opens
-// Trading Buddy again, because the server (check-alerts-cron.js) emails
-// the address directly via Resend. Just an email + a toggle button.
-const EMAIL_ALERT_KEY = 'tb_email_alert_address';
-function loadEmailAlertAddress(){ try{ return localStorage.getItem(EMAIL_ALERT_KEY) || ''; }catch{ return ''; } }
-function saveEmailAlertAddress(addr){ try{ if(addr) localStorage.setItem(EMAIL_ALERT_KEY, addr); else localStorage.removeItem(EMAIL_ALERT_KEY); }catch{} }
-
-// Pushes the current email + alert list to the server. Called on
-// subscribe, and again whenever alerts change, so the server always
-// checks the levels you're actually watching right now — mirrors
-// syncPushSubscription() above but for the email channel.
-async function syncEmailAlertSubscription(){
-  const email = loadEmailAlertAddress();
-  if(!email) return; // email alerts not turned on — nothing to sync
-  try{
-    await fetch('/api/save-email-alert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, alerts: buildAlertListForServer() }),
-    });
-  }catch(e){ console.warn('[email-alerts] sync failed', e); }
-}
-
-// Reflects whether this browser has an email alert address saved, when
-// the page loads — mirrors initPushButtonState() below but for email.
-function initEmailAlertState(){
-  const input = document.getElementById('emailAlertInput');
-  const btn = document.getElementById('emailAlertBtn');
-  const label = document.getElementById('emailAlertBtnLabel');
-  if(!input || !btn || !label) return;
-  const saved = loadEmailAlertAddress();
-  if(saved){
-    input.value = saved;
-    btn.classList.add('on');
-    label.textContent = 'Email Alerts On';
-  }
-}
-
-async function toggleEmailAlerts(){
-  const input = document.getElementById('emailAlertInput');
-  const btn = document.getElementById('emailAlertBtn');
-  const label = document.getElementById('emailAlertBtnLabel');
-  const saved = loadEmailAlertAddress();
-
-  if(saved){
-    // Turn email alerts off.
-    btn.disabled = true;
-    try{
-      await fetch('/api/save-email-alert', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: saved }),
-      }).catch(()=>{});
-      saveEmailAlertAddress('');
-      btn.classList.remove('on');
-      label.textContent = 'Email Alerts Off';
-    } finally { btn.disabled = false; }
-    return;
-  }
-
-  const email = (input.value || '').trim();
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if(!EMAIL_RE.test(email)){
-    alert('Enter a valid email address first.');
-    return;
-  }
-  btn.disabled = true;
-  try{
-    const res = await fetch('/api/save-email-alert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, alerts: buildAlertListForServer() }),
-    });
-    if(!res.ok) throw new Error('save-email-alert failed');
-    saveEmailAlertAddress(email);
-    btn.classList.add('on');
-    label.textContent = 'Email Alerts On';
-  }catch(e){
-    console.error('[email-alerts] subscribe failed', e);
-    alert('Could not turn on email alerts — see the browser console for details.');
-  }finally{
-    btn.disabled = false;
-  }
 }
 
 async function togglePhoneAlerts(){
@@ -1618,7 +1666,6 @@ function init(){
   renderJournal();
   renderManualAlerts();
   initPushButtonState();
-  initEmailAlertState();
   document.addEventListener('click', unlockAlertAudioOnce);
   document.addEventListener('keydown', unlockAlertAudioOnce);
   document.addEventListener('touchstart', unlockAlertAudioOnce);
