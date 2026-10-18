@@ -30,14 +30,6 @@ const { getStore } = require("@netlify/blobs");
 function getAlertStore(name) {
   const siteID = process.env.BLOBS_SITE_ID;
   const token = process.env.BLOBS_TOKEN;
-  // TEMPORARY DIAGNOSTIC — does NOT print the actual secret, only whether
-  // it's present and how long it is, so we can tell from the function log
-  // whether these env vars are actually reaching this function at runtime.
-  // Safe to remove once the MissingBlobsEnvironmentError is sorted out.
-  console.log(
-    "[_blobs] BLOBS_SITE_ID present:", !!siteID, "length:", siteID ? siteID.length : 0,
-    "| BLOBS_TOKEN present:", !!token, "length:", token ? token.length : 0
-  );
   if (siteID && token) {
     return getStore({ name, siteID, token });
   }
