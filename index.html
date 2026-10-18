@@ -258,6 +258,16 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .alert-row button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;
   padding:3px 8px;cursor:pointer;font-size:11px}
 .alerts-empty{color:var(--muted);font-size:12.5px;padding:6px 0}
+.email-alerts-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.email-alerts-row input[type=email]{flex:1;min-width:180px;background:#0d1220;border:1.5px solid var(--border);
+  border-radius:10px;padding:8px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.email-alerts-row button{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;
+  border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap}
+.email-alerts-row button:disabled{opacity:.5;cursor:default}
+.email-alert-status{font-size:12px;color:var(--muted);width:100%}
+.email-alert-status.ok{color:var(--green)}
+.email-alert-status.pending{color:var(--gold)}
+.email-alert-status.err{color:var(--red)}
 </style>
 </head>
 <body>
@@ -323,6 +333,11 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
       <button type="button" onclick="addManualAlert()">+ Add Alert</button>
     </div>
     <div id="manualAlertsList"></div>
+    <div class="email-alerts-row">
+      <input type="email" id="emailAlertInput" placeholder="you@example.com — get these alerts by email too" autocomplete="email">
+      <button type="button" id="emailAlertBtn" onclick="saveEmailAlerts()">✉️ Email Me Alerts</button>
+      <div class="email-alert-status" id="emailAlertStatus"></div>
+    </div>
   </div>
   <div class="section-note">Click "Start Price Alerts" in the header once (it needs a click to unlock sound and ask permission for notifications). Hot List cards below get an alert automatically, using the level researched for that pick. Add your own manual alert above for anything in your watchlist. When a trigger is hit, that card/row flashes, a tone plays, and — if you allowed it — a browser notification pops, even if this tab is in the background. Each alert only fires once until you click "Start Price Alerts" again (e.g. at the start of a new session) or edit the level. This checks real prices from a live quote feed roughly every 30 seconds while monitoring is on — not simulated.</div>
 
@@ -1305,6 +1320,7 @@ function syncHotlistAlerts(list){
     });
   });
   syncPushSubscription();
+  syncEmailAlerts();
 }
 
 function renderManualAlerts(){
@@ -1348,6 +1364,7 @@ function addManualAlert(){
   renderManualAlerts();
   renderPinList();
   syncPushSubscription();
+  syncEmailAlerts();
 }
 function removeManualAlert(i){
   manualAlerts.splice(i,1);
@@ -1355,6 +1372,7 @@ function removeManualAlert(i){
   renderManualAlerts();
   renderPinList();
   syncPushSubscription();
+  syncEmailAlerts();
 }
 
 function flashTickerRow(ticker, direction){
@@ -1545,6 +1563,98 @@ async function syncPushSubscription(){
   }catch(e){ console.warn('[push] sync failed', e); }
 }
 
+// ---------------------------------------------------------------------
+// Email alerts — independent of browser push, works even on a device
+// that never enabled Phone Alerts. The email + whether it's confirmed
+// is remembered in localStorage so the box shows the right state (and
+// re-syncs the current alert list) next time this page loads.
+// ---------------------------------------------------------------------
+const EMAIL_ALERT_STORAGE_KEY = 'tb_email_alert';
+
+function setEmailAlertStatus(text, kind){
+  const el = document.getElementById('emailAlertStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'email-alert-status' + (kind ? ' ' + kind : '');
+}
+
+function loadSavedEmailAlert(){
+  try{ return JSON.parse(localStorage.getItem(EMAIL_ALERT_STORAGE_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+function rememberEmailAlert(email, confirmed){
+  try{ localStorage.setItem(EMAIL_ALERT_STORAGE_KEY, JSON.stringify({ email, confirmed })); }
+  catch(e){ /* ignore -- private browsing etc, just won't persist across reloads */ }
+}
+
+async function saveEmailAlerts(){
+  const input = document.getElementById('emailAlertInput');
+  const btn = document.getElementById('emailAlertBtn');
+  const email = (input.value || '').trim();
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    setEmailAlertStatus('Enter a valid email address first.', 'err');
+    return;
+  }
+  btn.disabled = true;
+  setEmailAlertStatus('Saving...', 'pending');
+  try{
+    const res = await fetch('/api/save-email-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, alerts: buildAlertListForServer() }),
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      setEmailAlertStatus((data && data.message) ? data.message : 'Could not save -- try again in a moment.', 'err');
+      return;
+    }
+    rememberEmailAlert(email, !!data.confirmed);
+    if(data.confirmed){
+      setEmailAlertStatus(`Email alerts on for ${email}.`, 'ok');
+    } else if(data.confirmationSent){
+      setEmailAlertStatus(`Check ${email} for a confirmation link -- alerts start once you click it.`, 'pending');
+    } else {
+      setEmailAlertStatus('Saved, but the confirmation email could not be sent' + (data.confirmationError ? ': ' + data.confirmationError : '.') + ' Try again shortly.', 'err');
+    }
+  }catch(e){
+    console.warn('[email alert] save failed', e);
+    setEmailAlertStatus('Could not reach the server -- try again in a moment.', 'err');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+// Called whenever manual alerts change, so an already-confirmed address
+// keeps watching the current alert list (same idea as syncPushSubscription,
+// but doesn't need a service worker / push subscription to exist).
+async function syncEmailAlerts(){
+  const saved = loadSavedEmailAlert();
+  if(!saved || !saved.email) return;
+  try{
+    const res = await fetch('/api/save-email-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: saved.email, alerts: buildAlertListForServer() }),
+    });
+    const data = await res.json().catch(()=>({}));
+    if(res.ok) rememberEmailAlert(saved.email, !!data.confirmed);
+  }catch(e){ console.warn('[email alert] sync failed', e); }
+}
+
+// Restores the saved email address into the box (if any) and shows
+// whether it's confirmed, when the page loads.
+function initEmailAlertState(){
+  const saved = loadSavedEmailAlert();
+  if(!saved || !saved.email) return;
+  const input = document.getElementById('emailAlertInput');
+  if(input) input.value = saved.email;
+  setEmailAlertStatus(
+    saved.confirmed ? `Email alerts on for ${saved.email}.` : `${saved.email} saved -- check your inbox to confirm.`,
+    saved.confirmed ? 'ok' : 'pending'
+  );
+  syncEmailAlerts();
+}
+
 async function togglePhoneAlerts(){
   const btn = document.getElementById('pushBtn');
   const label = document.getElementById('pushBtnLabel');
@@ -1677,6 +1787,7 @@ function init(){
   renderJournal();
   renderManualAlerts();
   initPushButtonState();
+  initEmailAlertState();
   document.addEventListener('click', unlockAlertAudioOnce);
   document.addEventListener('keydown', unlockAlertAudioOnce);
   document.addEventListener('touchstart', unlockAlertAudioOnce);
