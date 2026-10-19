@@ -135,3 +135,26 @@ exports.handler = schedule("*/5 * * * *", async () => {
   } catch (err) {
     console.error("send-hotlist-cron: failed to fetch /api/hotlist", err);
     return {
+    return { statusCode: 200, body: "hotlist fetch failed, skipped" };
+  }
+
+  const subject = `Trading Buddy Daily Hot List -- ${today}`;
+  const body =
+    `Today's Hot List (${list.length} pick${list.length === 1 ? "" : "s"}):\n\n` +
+    list.map(formatPickText).join("\n\n---\n\n") +
+    `\n\nReference levels based on data at generation time -- always confirm the live price on the chart before acting. Signal quality and risk management matter more than any single pick.\n\n— Trading Buddy\n\nTurn these emails off any time from the Trading Buddy app (Daily Hot List section).`;
+
+  let sent = 0;
+  for (const { key, rec } of candidates) {
+    try {
+      await sendEmail({ apiKey: resendKey, from: resendFrom, to: rec.email, subject, text: body });
+      rec.hotListSentOn = today;
+      await store.setJSON(key, rec);
+      sent++;
+    } catch (err) {
+      console.error(`send-hotlist-cron: email send failed -> ${rec.email}`, err);
+    }
+  }
+
+  return { statusCode: 200, body: `sent ${sent} hot list emails` };
+});
