@@ -319,6 +319,12 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
   <div id="hotlistKeyBox"></div>
   <div class="hotlist-grid" id="hotlistGrid"></div>
   <div class="section-note">This list is pulled <b>live</b> from a real-time market-data feed and auto-refreshes every 5 minutes while this page stays open — ranked by which watched stocks are moving the most right now, with real earnings-calendar data folded in as a bonus signal. If the live feed is ever unavailable, it falls back to the last hand-researched list below with a note saying so. Entry/target/stop are reference levels based on the data at the moment shown — always confirm the live price on the chart before acting, and treat anything reporting earnings as gap risk: a stop-loss order does not protect you from a price gapping past it overnight.</div>
+  <div class="email-alerts-row" id="hotlistEmailRow">
+    <input type="email" id="hotlistEmailInput" placeholder="you@example.com — get the Daily Hot List by email" autocomplete="email">
+    <button type="button" id="hotlistEmailBtn" onclick="toggleHotlistEmail()">✉️ Turn On Daily Hot List Emails</button>
+    <div class="email-alert-status" id="hotlistEmailStatus"></div>
+  </div>
+  <div class="section-note">One email, every trading morning before the open, with that day's Hot List picks and the same entry/target/stop levels shown above. Turn it on or off any time with the button above — first time around you'll get a confirmation link to click so nobody can sign up an address that isn't theirs.</div>
 
   <div class="section-label">Price Alerts — Flash, Sound &amp; Notification on a Breakout</div>
   <div class="alerts-card">
@@ -1655,6 +1661,100 @@ function initEmailAlertState(){
   syncEmailAlerts();
 }
 
+// ---------------------------------------------------------------------
+// Daily Hot List email digest — a separate on/off toggle from the
+// breakout email alerts above, sharing the same server-side record (and
+// the same confirmation link) via save-hotlist-subscription.js, so one
+// confirmed address covers both. Mirrors the email-alert pattern above:
+// state remembered in localStorage so the button/status show correctly
+// next time this page loads.
+// ---------------------------------------------------------------------
+const HOTLIST_EMAIL_STORAGE_KEY = 'tb_hotlist_email';
+
+function setHotlistEmailStatus(text, kind){
+  const el = document.getElementById('hotlistEmailStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'email-alert-status' + (kind ? ' ' + kind : '');
+}
+
+function loadSavedHotlistEmail(){
+  try{ return JSON.parse(localStorage.getItem(HOTLIST_EMAIL_STORAGE_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+function rememberHotlistEmail(email, enabled, confirmed){
+  try{ localStorage.setItem(HOTLIST_EMAIL_STORAGE_KEY, JSON.stringify({ email, enabled, confirmed })); }
+  catch(e){ /* ignore -- private browsing etc, just won't persist across reloads */ }
+}
+
+function updateHotlistEmailButton(){
+  const btn = document.getElementById('hotlistEmailBtn');
+  if(!btn) return;
+  const saved = loadSavedHotlistEmail();
+  btn.textContent = (saved && saved.enabled) ? '🔕 Turn Off Daily Hot List Emails' : '✉️ Turn On Daily Hot List Emails';
+}
+
+async function toggleHotlistEmail(){
+  const input = document.getElementById('hotlistEmailInput');
+  const btn = document.getElementById('hotlistEmailBtn');
+  const saved = loadSavedHotlistEmail();
+  const turningOn = !(saved && saved.enabled);
+  const email = (input.value || (saved && saved.email) || '').trim();
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    setHotlistEmailStatus('Enter a valid email address first.', 'err');
+    return;
+  }
+  btn.disabled = true;
+  setHotlistEmailStatus(turningOn ? 'Turning on...' : 'Turning off...', 'pending');
+  try{
+    const res = await fetch('/api/save-hotlist-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, enabled: turningOn }),
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      setHotlistEmailStatus((data && data.message) ? data.message : 'Could not save -- try again in a moment.', 'err');
+      return;
+    }
+    if(!turningOn){
+      rememberHotlistEmail(email, false, !!data.confirmed);
+      setHotlistEmailStatus(`Daily Hot List emails off for ${email}.`, 'ok');
+    } else if(data.confirmed){
+      rememberHotlistEmail(email, true, true);
+      setHotlistEmailStatus(`Daily Hot List emails on for ${email}.`, 'ok');
+    } else if(data.confirmationSent){
+      rememberHotlistEmail(email, true, false);
+      setHotlistEmailStatus(`Check ${email} for a confirmation link -- the daily email starts once you click it.`, 'pending');
+    } else {
+      rememberHotlistEmail(email, true, false);
+      setHotlistEmailStatus('Saved, but the confirmation email could not be sent' + (data.confirmationError ? ': ' + data.confirmationError : '.') + ' Try again shortly.', 'err');
+    }
+    updateHotlistEmailButton();
+  }catch(e){
+    console.warn('[hotlist email] save failed', e);
+    setHotlistEmailStatus('Could not reach the server -- try again in a moment.', 'err');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+// Restores the saved email address + on/off state into the box when the
+// page loads (no server round-trip needed just to show prior state).
+function initHotlistEmailState(){
+  const saved = loadSavedHotlistEmail();
+  if(!saved || !saved.email) return;
+  const input = document.getElementById('hotlistEmailInput');
+  if(input) input.value = saved.email;
+  updateHotlistEmailButton();
+  if(saved.enabled){
+    setHotlistEmailStatus(
+      saved.confirmed ? `Daily Hot List emails on for ${saved.email}.` : `${saved.email} saved -- check your inbox to confirm.`,
+      saved.confirmed ? 'ok' : 'pending'
+    );
+  }
+}
+
 async function togglePhoneAlerts(){
   const btn = document.getElementById('pushBtn');
   const label = document.getElementById('pushBtnLabel');
@@ -1788,6 +1888,7 @@ function init(){
   renderManualAlerts();
   initPushButtonState();
   initEmailAlertState();
+  initHotlistEmailState();
   document.addEventListener('click', unlockAlertAudioOnce);
   document.addEventListener('keydown', unlockAlertAudioOnce);
   document.addEventListener('touchstart', unlockAlertAudioOnce);
