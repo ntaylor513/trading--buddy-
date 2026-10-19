@@ -134,7 +134,6 @@ exports.handler = schedule("*/5 * * * *", async () => {
     list = data.list;
   } catch (err) {
     console.error("send-hotlist-cron: failed to fetch /api/hotlist", err);
-    return {
     return { statusCode: 200, body: "hotlist fetch failed, skipped" };
   }
 
