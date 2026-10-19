@@ -157,4 +157,3 @@ exports.handler = schedule("*/5 * * * *", async () => {
 
   return { statusCode: 200, body: `sent ${sent} hot list emails` };
 });
-
