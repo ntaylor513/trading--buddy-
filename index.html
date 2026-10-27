@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,7 +133,7 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .calc-warn{grid-column:1/-1;font-size:12px;color:var(--gold);background:#f59e0b18;border:1px solid #f59e0b33;border-radius:10px;padding:10px 12px}
 .calc-hint{grid-column:1/-1;color:var(--muted);font-size:12px;text-align:center;padding:6px}
 
-/* ── Trade journal ── */
+/* ── Trade journal (closed trades log) ── */
 .journal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px}
 .journal-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
 .journal-form input,.journal-form select,.journal-form textarea{background:#0d1220;border:1.5px solid var(--border);
@@ -148,10 +149,47 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .journal-table th{text-align:left;color:var(--muted);font-weight:800;padding:8px;border-bottom:1px solid var(--border);
   white-space:nowrap;font-size:10px;text-transform:uppercase}
 .journal-table td{padding:8px;border-bottom:1px solid #142138;white-space:nowrap}
+.journal-table tfoot td{font-weight:900;border-bottom:none;border-top:1.5px solid var(--border);background:#0d1220}
 .pnl-pos{color:var(--green);font-weight:800}
 .pnl-neg{color:var(--red);font-weight:800}
 .jnotes{max-width:180px;white-space:normal;color:var(--muted)}
 .jdel{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px}
+
+/* ── Position tracker (open positions) ── */
+.tax-rate-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed var(--border)}
+.tax-rate-row label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tax-rate-row input{width:80px;background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;color:#f1f5f9;font-size:14px;font-weight:700;font-family:inherit}
+.position-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:8px}
+.position-form input{background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.tp-slider-wrap{grid-column:span 2;display:flex;flex-direction:column;justify-content:center;gap:4px;background:#0d1220;border:1.5px solid var(--border);border-radius:10px;padding:6px 12px}
+.tp-slider-wrap .tp-label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em;display:flex;justify-content:space-between}
+.tp-slider-wrap .tp-label b{color:var(--green);font-size:12px}
+.tp-slider-wrap input[type=range]{width:100%;accent-color:var(--green)}
+.position-form button{grid-column:1/-1;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;
+  border:none;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;font-size:13px}
+.positions-empty{color:var(--muted);font-size:12.5px;padding:16px 0;text-align:center}
+.position-row{background:#0d1220;border:1.5px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px}
+.position-row.breakout-flash-long,.position-row.breakout-flash-short{border-radius:14px}
+.position-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.position-head .sym{font-size:16px;font-weight:900;color:#f1f5f9}
+.position-head .sub{font-size:11px;color:var(--muted);margin-left:8px;font-weight:600}
+.position-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:10px}
+.ptile{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.ptile-label{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.ptile-value{font-size:14px;font-weight:900;color:#f1f5f9;margin-top:2px}
+.position-tp-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:10px}
+.position-tp-row label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;white-space:nowrap}
+.position-tp-row input[type=range]{flex:1;accent-color:var(--green)}
+.position-tp-row b{color:var(--green);font-size:13px;min-width:38px;text-align:right}
+.position-actions{display:flex;gap:8px;flex-wrap:wrap}
+.position-actions button{border-radius:10px;padding:8px 14px;font-weight:800;font-size:12px;cursor:pointer;border:1.5px solid var(--border)}
+.btn-close-trade{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border-color:transparent}
+.btn-discard{background:none;color:var(--muted)}
+.btn-refresh-div{background:none;color:var(--cyan);border-color:#38bdf855}
+.close-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+.close-form input,.close-form textarea{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;color:#f1f5f9;font-size:13px;font-family:inherit}
+.close-form textarea{grid-column:1/-1;resize:vertical}
+.close-form button{grid-column:1/-1;background:linear-gradient(135deg,var(--green),#15803d);color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800;cursor:pointer;font-size:13px}
 
 /* ── Multi-timeframe mini signal row ── */
 .mtf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -412,22 +450,34 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
   </div>
   <div class="section-note">If a stock is moving and its whole sector is green (or red) too, that's a market-wide move, not a story specific to that company — different implications for how much you'd trust the signal.</div>
 
-  <div class="section-label">Trade Journal — Saved Locally In Your Browser</div>
-  <div class="journal-card">
-    <div class="journal-form">
-      <input type="text" id="jSymbol" placeholder="Symbol (e.g. AAPL)" maxlength="10" style="text-transform:uppercase">
-      <select id="jDirection"><option value="Long">Long</option><option value="Short">Short</option></select>
-      <input type="number" id="jEntry" placeholder="Entry $" step="0.01">
-      <input type="number" id="jExit" placeholder="Exit $ (blank = open)" step="0.01">
-      <input type="number" id="jShares" placeholder="Shares" step="1">
-      <input type="date" id="jDate">
-      <textarea id="jNotes" placeholder="Setup / reasoning / notes..." rows="2"></textarea>
-      <button type="button" onclick="addJournalEntry()">+ Add Trade</button>
+  <div class="section-label">Open Positions — Live P/L, Auto Stop-Loss (−5%) &amp; Take-Profit Alerts</div>
+  <div class="positions-card">
+    <div class="tax-rate-row">
+      <label for="taxRateInput">Tax rate on gains (%)</label>
+      <input type="number" id="taxRateInput" min="0" max="100" step="0.1" oninput="saveTaxRateInput()">
+      <span class="section-note" style="margin:0">Applied to every closed trade's tax-due column below. One flat rate for simplicity — not tax advice.</span>
     </div>
+    <div class="position-form">
+      <input type="text" id="pSymbol" placeholder="Symbol (e.g. AAPL)" maxlength="10" style="text-transform:uppercase">
+      <input type="number" id="pShares" placeholder="Shares" step="1" min="0">
+      <input type="number" id="pEntry" placeholder="Purchase price $" step="0.01" min="0">
+      <input type="date" id="pDate">
+      <div class="tp-slider-wrap">
+        <span class="tp-label"><span>Take-profit target</span><b id="pTakeProfitLabel">+20%</b></span>
+        <input type="range" id="pTakeProfit" min="5" max="100" step="1" value="20" oninput="document.getElementById('pTakeProfitLabel').textContent='+'+this.value+'%'">
+      </div>
+      <button type="button" onclick="addPosition()">+ Open Position</button>
+    </div>
+    <div id="positionsList"></div>
+  </div>
+  <div class="section-note">Every open position gets two automatic alerts, reusing the exact same breakout-alert engine above: one if the price <b>falls 5% below your entry</b> (stop-loss warning), one if it <b>rises to your take-profit slider's target</b>. They flash/sound/notify in this tab while "Start Price Alerts" is on, and — if you've enabled Phone Alerts or Email Alerts above — they'll also push to your phone or inbox even with this tab closed, the same way Hot List and manual alerts do. Move the slider any time; the target updates immediately. Dividend income is auto-looked-up from a live market-data feed for the period you've held each position — most stocks pay none, so $0.00 there is normal, not broken. One open position per ticker at a time; opening a new one on a symbol that already has a manual breakout alert will take over that symbol's alert (the position's levels win). Everything here is saved only in this browser (localStorage) — it won't sync across devices or survive clearing browser data.</div>
+
+  <div class="section-label">Trade Log — Closed Positions, Running P/L &amp; Tax Totals</div>
+  <div class="journal-card">
     <div class="journal-stats" id="journalStats"></div>
     <div class="journal-table-wrap"><table class="journal-table" id="journalTable"></table></div>
   </div>
-  <div class="section-note">Stored only in this browser (localStorage) — nothing is sent anywhere. It won't sync across devices or survive clearing browser data, so export/screenshot anything you want to keep long-term. The point isn't the P/L column — it's building the habit of reviewing your own reasoning after the fact, which is how you actually improve.</div>
+  <div class="section-note">Tax due is estimated as your tax rate × profit on winning trades only (losses show $0 tax due here — this is a simple planning estimate, not tax advice; capital losses can offset gains on your actual return in ways this tool doesn't model, so always confirm with your broker's 1099 and a tax professional). Net = P/L + dividends collected − tax due. Stored only in this browser (localStorage) — export/screenshot anything you want to keep long-term.</div>
 </main>
 
 <footer>
@@ -1206,76 +1256,383 @@ function recalcPosition(){
   `;
 }
 
-// ── Trade journal — localStorage only, per-browser, never leaves the
-// device. Not synced anywhere, no export yet — screenshot/back up
-// anything you want to keep long-term. ──
-const JOURNAL_KEY = 'tb_journal_v1';
-function loadJournal(){ try{ return JSON.parse(localStorage.getItem(JOURNAL_KEY)) || []; }catch{ return []; } }
-function saveJournal(j){ try{ localStorage.setItem(JOURNAL_KEY, JSON.stringify(j)); }catch{} }
-function addJournalEntry(){
-  const symbol = document.getElementById('jSymbol').value.trim().toUpperCase();
-  const direction = document.getElementById('jDirection').value;
-  const entry = parseFloat(document.getElementById('jEntry').value);
-  const exitRaw = document.getElementById('jExit').value;
-  const exit = exitRaw ? parseFloat(exitRaw) : null;
-  const shares = parseFloat(document.getElementById('jShares').value);
-  const date = document.getElementById('jDate').value || new Date().toISOString().slice(0,10);
-  const notes = document.getElementById('jNotes').value.trim();
+// ── Position Tracker + Trade Log — localStorage only, per-browser, never
+// leaves the device. Open positions (ticker + purchase price + shares)
+// get a live P/L, an automatic stop-loss (-5%) and take-profit alert
+// (reusing the exact same alertLevels engine as the Hot List / manual
+// alerts above — see applyPositionAlertLevels() below — so they flash,
+// sound, and push to phone/email the same way), and an auto-looked-up
+// dividend total for however long you've held it. Closing a position logs
+// it to the Trade Log below with entry/exit/P&L/tax/dividends and running
+// totals across every closed trade. ──
+const TAX_RATE_KEY = 'tb_tax_rate_v1';
+const POSITIONS_KEY = 'tb_open_positions_v1';
+const CLOSED_TRADES_KEY = 'tb_closed_trades_v1';
+const MIGRATION_FLAG_KEY = 'tb_journal_migrated_v1';
 
-  if(!symbol || !entry || !shares){
-    alert('Symbol, entry price, and shares are required.');
+function uid(){ return Date.now()*1000 + Math.floor(Math.random()*1000); }
+
+function loadTaxRate(){
+  const v = parseFloat(localStorage.getItem(TAX_RATE_KEY));
+  return isNaN(v) ? 22 : v; // 22% default — a reasonable ballpark, not advice; change it above
+}
+function saveTaxRate(rate){ try{ localStorage.setItem(TAX_RATE_KEY, String(rate)); }catch{} }
+function saveTaxRateInput(){
+  const v = parseFloat(document.getElementById('taxRateInput').value);
+  saveTaxRate(isNaN(v) ? 0 : v);
+  renderClosedTrades(); // tax column + totals depend on the rate
+}
+
+function loadPositions(){ try{ return JSON.parse(localStorage.getItem(POSITIONS_KEY)) || []; }catch{ return []; } }
+function savePositions(p){ try{ localStorage.setItem(POSITIONS_KEY, JSON.stringify(p)); }catch{} }
+function loadClosedTrades(){ try{ return JSON.parse(localStorage.getItem(CLOSED_TRADES_KEY)) || []; }catch{ return []; } }
+function saveClosedTrades(t){ try{ localStorage.setItem(CLOSED_TRADES_KEY, JSON.stringify(t)); }catch{} }
+
+// One-time best-effort import from the old single-table Trade Journal
+// (tb_journal_v1, no longer shown), so upgrading to this feature doesn't
+// silently lose anything already logged there. Guarded by
+// MIGRATION_FLAG_KEY so it only ever runs once — safe to delete
+// everything afterward without the old entries reappearing.
+function migrateOldJournalOnce(){
+  if(localStorage.getItem(MIGRATION_FLAG_KEY)) return;
+  try{
+    const old = JSON.parse(localStorage.getItem('tb_journal_v1')) || [];
+    if(old.length){
+      const positions = loadPositions();
+      const closed = loadClosedTrades();
+      const taxRate = loadTaxRate();
+      old.forEach(e=>{
+        if(e.exit != null){
+          const pnl = e.pnl != null ? e.pnl : (e.direction==='Short' ? (e.entry-e.exit) : (e.exit-e.entry)) * e.shares;
+          const tax = Math.max(0, pnl) * (taxRate/100);
+          closed.push({
+            id: uid(), closedDate: e.date, ticker: e.symbol, shares: e.shares,
+            entryPrice: e.entry, exitPrice: e.exit, pnl, dividends: 0,
+            tax, net: pnl - tax, notes: ((e.notes||'').trim()+' (migrated from old Trade Journal)').trim(),
+          });
+        } else if(e.direction !== 'Short'){ // the old tool's "open short" has no equivalent here
+          positions.push({
+            id: uid(), ticker: e.symbol, shares: e.shares, entryPrice: e.entry,
+            entryDate: e.date, takeProfitPct: 20, dividends: 0, lastDivCheck: null, closing: false,
+          });
+        }
+      });
+      savePositions(positions);
+      saveClosedTrades(closed);
+    }
+  }catch(err){ console.warn('[positions] migration skipped', err); }
+  localStorage.setItem(MIGRATION_FLAG_KEY, '1');
+}
+
+// ticker -> last known live price, shared by the position cards and the
+// dedicated poll below. Independent of whether "Start Price Alerts" (the
+// breakout-alert engine above) is toggled on, so P/L here always stays
+// current while this tab is open, alerts or not.
+const positionPrices = new Map();
+let positionPollTimer = null;
+
+function startPositionPricePolling(){
+  if(positionPollTimer || loadPositions().length === 0) return;
+  pollPositionPrices();
+  positionPollTimer = setInterval(pollPositionPrices, 30000);
+}
+function stopPositionPricePollingIfEmpty(){
+  if(loadPositions().length === 0 && positionPollTimer){
+    clearInterval(positionPollTimer);
+    positionPollTimer = null;
+  }
+}
+async function pollPositionPrices(){
+  const tickers = [...new Set(loadPositions().map(p=>p.ticker))];
+  if(tickers.length === 0) return;
+  const quotes = await fetchQuotes(tickers); // same /api/quote helper the breakout-alert engine uses
+  tickers.forEach(t=>{ if(quotes[t] && quotes[t].price) positionPrices.set(t, quotes[t].price); });
+  renderPositions();
+  maybeRefreshDividends();
+}
+
+// Registers each open position's stop-loss (-5%) and take-profit target
+// into the SAME alertLevels map the breakout-alert engine above already
+// polls, flashes, sounds, and pushes to phone/email for — positions get
+// all of that for free. Called every render, last (after Hot List +
+// manual alerts in the init order below), so a position's own levels win
+// if a ticker happens to appear in more than one place.
+function applyPositionAlertLevels(){
+  loadPositions().forEach(p=>{
+    setAlertLevel(p.ticker, {
+      long: p.entryPrice * (1 + p.takeProfitPct/100),
+      short: p.entryPrice * 0.95,
+      label: `Position: entry $${p.entryPrice.toFixed(2)}, stop -5% / target +${p.takeProfitPct}%`,
+    });
+  });
+}
+
+function addPosition(){
+  const ticker = document.getElementById('pSymbol').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  const shares = parseFloat(document.getElementById('pShares').value);
+  const entryPrice = parseFloat(document.getElementById('pEntry').value);
+  const entryDate = document.getElementById('pDate').value || new Date().toISOString().slice(0,10);
+  const takeProfitPct = parseFloat(document.getElementById('pTakeProfit').value) || 20;
+
+  if(!ticker || !shares || !entryPrice){
+    alert('Symbol, shares, and purchase price are required.');
     return;
   }
-  let pnl = null;
-  if(exit != null && !isNaN(exit)){
-    pnl = (direction==='Short' ? (entry-exit) : (exit-entry)) * shares;
+  const positions = loadPositions();
+  if(positions.some(p=>p.ticker===ticker)){
+    alert(`You already have an open position in ${ticker}. Close it before opening a new one (one active trade per ticker).`);
+    return;
   }
-  const j = loadJournal();
-  j.push({ id: Date.now(), date, symbol, direction, entry, exit, shares, notes, pnl });
-  saveJournal(j);
-  ['jSymbol','jEntry','jExit','jShares','jNotes'].forEach(id=>document.getElementById(id).value='');
-  renderJournal();
+  positions.push({
+    id: uid(), ticker, shares, entryPrice, entryDate,
+    takeProfitPct, dividends: 0, lastDivCheck: null, closing: false,
+  });
+  savePositions(positions);
+  ['pSymbol','pShares','pEntry'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pTakeProfit').value = 20;
+  document.getElementById('pTakeProfitLabel').textContent = '+20%';
+
+  applyPositionAlertLevels();
+  syncPushSubscription();
+  syncEmailAlerts();
+  startPositionPricePolling();
+  renderPositions();
+  refreshDividendsFor(ticker); // kick off the first lookup right away
 }
-function deleteJournalEntry(id){
-  saveJournal(loadJournal().filter(e=>e.id!==id));
-  renderJournal();
+
+function updateTakeProfit(id, value){
+  const positions = loadPositions();
+  const p = positions.find(x=>x.id===id);
+  if(!p) return;
+  p.takeProfitPct = parseFloat(value) || 20;
+  savePositions(positions);
+  applyPositionAlertLevels();
+  syncPushSubscription();
+  syncEmailAlerts();
+  const tile = document.querySelector(`[data-ticker-row="${CSS.escape(p.ticker)}"] .ptile-value[data-target-tile]`);
+  if(tile) tile.textContent = '$'+(p.entryPrice*(1+p.takeProfitPct/100)).toFixed(2);
 }
-function renderJournal(){
-  const j = loadJournal().sort((a,b)=> b.id - a.id);
+
+function discardPosition(id){
+  if(!confirm('Discard this position without logging it to the Trade Log? This cannot be undone.')) return;
+  const positions = loadPositions().filter(p=>p.id!==id);
+  const removed = loadPositions().find(p=>p.id===id);
+  savePositions(positions);
+  if(removed){ setAlertLevel(removed.ticker,{long:null,short:null,label:''}); alertLevels.delete(removed.ticker); }
+  applyPositionAlertLevels();
+  syncPushSubscription();
+  syncEmailAlerts();
+  stopPositionPricePollingIfEmpty();
+  renderPositions();
+}
+
+function openCloseForm(id){
+  const positions = loadPositions();
+  const p = positions.find(x=>x.id===id);
+  if(p) p.closing = true;
+  savePositions(positions);
+  renderPositions();
+}
+function cancelCloseForm(id){
+  const positions = loadPositions();
+  const p = positions.find(x=>x.id===id);
+  if(p) p.closing = false;
+  savePositions(positions);
+  renderPositions();
+}
+
+function confirmClosePosition(id){
+  const positions = loadPositions();
+  const idx = positions.findIndex(x=>x.id===id);
+  if(idx === -1) return;
+  const p = positions[idx];
+
+  const exitPrice = parseFloat(document.getElementById('pExit-'+id).value);
+  const exitDate = document.getElementById('pExitDate-'+id).value || new Date().toISOString().slice(0,10);
+  const notes = (document.getElementById('pExitNotes-'+id).value || '').trim();
+
+  if(!exitPrice || exitPrice <= 0){
+    alert('Enter the exit price you sold at.');
+    return;
+  }
+
+  const pnl = (exitPrice - p.entryPrice) * p.shares;
+  const taxRate = loadTaxRate();
+  const tax = Math.max(0, pnl) * (taxRate/100);
+  const dividends = p.dividends || 0;
+  const net = pnl + dividends - tax;
+
+  const closed = loadClosedTrades();
+  closed.push({
+    id: uid(), closedDate: exitDate, ticker: p.ticker, shares: p.shares,
+    entryPrice: p.entryPrice, exitPrice, pnl, dividends, tax, net, notes,
+  });
+  saveClosedTrades(closed);
+
+  positions.splice(idx, 1);
+  savePositions(positions);
+
+  // This ticker no longer has an open position — its stop/target no
+  // longer apply. (If it also happened to be a Hot List pick or a manual
+  // alert, that alert is gone too; re-add it manually above if you still
+  // want it watched.)
+  setAlertLevel(p.ticker, { long: null, short: null, label: '' });
+  alertLevels.delete(p.ticker);
+  syncPushSubscription();
+  syncEmailAlerts();
+  stopPositionPricePollingIfEmpty();
+
+  renderPositions();
+  renderClosedTrades();
+}
+
+async function refreshDividendsFor(ticker){
+  const positions = loadPositions();
+  const p = positions.find(x=>x.ticker===ticker);
+  if(!p) return;
+  try{
+    const to = new Date().toISOString().slice(0,10);
+    const res = await fetch(`/api/dividends-history?symbol=${encodeURIComponent(ticker)}&from=${p.entryDate}&to=${to}`);
+    if(!res.ok) throw new Error('http-'+res.status);
+    const data = await res.json();
+    const perShareTotal = (data.items||[]).reduce((s,d)=>s+d.amount,0);
+    p.dividends = Math.round(perShareTotal * p.shares * 100)/100;
+    p.lastDivCheck = Date.now();
+    savePositions(positions);
+    renderPositions();
+  }catch(e){
+    console.warn('[positions] dividend lookup failed for', ticker, e);
+  }
+}
+
+// Dividend data rarely changes intraday — piggyback a check onto the
+// existing 30s price poll, but only once per position per hour, so this
+// doesn't multiply the number of Finnhub calls the app makes.
+const DIV_RECHECK_MS = 60*60*1000;
+function maybeRefreshDividends(){
+  loadPositions().forEach(p=>{
+    if(!p.lastDivCheck || Date.now() - p.lastDivCheck > DIV_RECHECK_MS) refreshDividendsFor(p.ticker);
+  });
+}
+
+function daysHeld(entryDate){
+  const ms = Date.now() - new Date(entryDate+'T00:00:00').getTime();
+  return Math.max(0, Math.round(ms / 86400000));
+}
+
+function renderPositions(){
+  const positions = loadPositions();
+  const listEl = document.getElementById('positionsList');
+  if(!listEl) return;
+
+  applyPositionAlertLevels();
+
+  if(positions.length === 0){
+    listEl.innerHTML = '<div class="positions-empty">No open positions — add one above to start tracking live P/L, auto stop-loss/take-profit alerts, and dividend income.</div>';
+    return;
+  }
+
+  listEl.innerHTML = positions.map(p=>{
+    const price = positionPrices.get(p.ticker);
+    const hasPrice = typeof price === 'number';
+    const pnl = hasPrice ? (price - p.entryPrice) * p.shares : null;
+    const pnlPct = hasPrice ? ((price - p.entryPrice) / p.entryPrice) * 100 : null;
+    const stop = p.entryPrice * 0.95;
+    const target = p.entryPrice * (1 + p.takeProfitPct/100);
+    const closeBtnLabel = p.closing ? '✕ Cancel' : '🏁 Close Trade';
+    const closeBtnAction = p.closing ? ('cancelCloseForm('+p.id+')') : ('openCloseForm('+p.id+')');
+
+    const closeFormHtml = p.closing ? `
+      <div class="close-form">
+        <input type="number" id="pExit-${p.id}" placeholder="Exit price $" step="0.01" value="${hasPrice ? price.toFixed(2) : ''}">
+        <input type="date" id="pExitDate-${p.id}" value="${new Date().toISOString().slice(0,10)}">
+        <textarea id="pExitNotes-${p.id}" placeholder="Notes (optional)" rows="1"></textarea>
+        <button type="button" onclick="confirmClosePosition(${p.id})">✓ Confirm Close &amp; Log Trade</button>
+        <button type="button" class="btn-discard" style="grid-column:1/-1" onclick="cancelCloseForm(${p.id})">Cancel</button>
+      </div>` : '';
+
+    return `
+      <div class="position-row" data-ticker-row="${p.ticker}">
+        <div class="position-head">
+          <div><span class="sym">${p.ticker}</span><span class="sub">${p.shares} sh @ $${p.entryPrice.toFixed(2)} · opened ${p.entryDate} · ${daysHeld(p.entryDate)}d held</span></div>
+        </div>
+        <div class="position-tiles">
+          <div class="ptile"><div class="ptile-label">Current</div><div class="ptile-value">${hasPrice ? '$'+price.toFixed(2) : '—'}</div></div>
+          <div class="ptile"><div class="ptile-label">Unrealized P/L</div><div class="ptile-value ${pnl==null?'':(pnl>=0?'pnl-pos':'pnl-neg')}">${pnl==null?'—':(pnl>=0?'+':'')+'$'+pnl.toFixed(2)}</div></div>
+          <div class="ptile"><div class="ptile-label">P/L %</div><div class="ptile-value ${pnlPct==null?'':(pnlPct>=0?'pnl-pos':'pnl-neg')}">${pnlPct==null?'—':(pnlPct>=0?'+':'')+pnlPct.toFixed(1)+'%'}</div></div>
+          <div class="ptile"><div class="ptile-label">Stop (−5%)</div><div class="ptile-value" style="color:var(--red)">$${stop.toFixed(2)}</div></div>
+          <div class="ptile"><div class="ptile-label">Target</div><div class="ptile-value" data-target-tile style="color:var(--green)">$${target.toFixed(2)}</div></div>
+          <div class="ptile"><div class="ptile-label">Dividends</div><div class="ptile-value">$${(p.dividends||0).toFixed(2)}</div></div>
+        </div>
+        <div class="position-tp-row">
+          <label>Take-profit</label>
+          <input type="range" min="5" max="100" step="1" value="${p.takeProfitPct}"
+            oninput="document.getElementById('ptpLabel-${p.id}').textContent='+'+this.value+'%'"
+            onchange="updateTakeProfit(${p.id}, this.value)">
+          <b id="ptpLabel-${p.id}">+${p.takeProfitPct}%</b>
+        </div>
+        <div class="position-actions">
+          <button type="button" class="btn-close-trade" onclick="${closeBtnAction}">${closeBtnLabel}</button>
+          <button type="button" class="btn-refresh-div" onclick="refreshDividendsFor('${p.ticker}')">↻ Refresh Dividends</button>
+          <button type="button" class="btn-discard" onclick="discardPosition(${p.id})">Discard (no log)</button>
+        </div>
+        ${closeFormHtml}
+      </div>`;
+  }).join('');
+}
+
+function renderClosedTrades(){
+  const trades = loadClosedTrades().sort((a,b)=> (b.closedDate||'').localeCompare(a.closedDate||'') || b.id-a.id);
   const statsEl = document.getElementById('journalStats');
   const tableEl = document.getElementById('journalTable');
-  const closed = j.filter(e=>e.pnl!=null);
-  const wins = closed.filter(e=>e.pnl>0).length;
-  const totalPnl = closed.reduce((s,e)=>s+e.pnl,0);
-  const winRate = closed.length ? (wins/closed.length*100) : 0;
+  if(!statsEl || !tableEl) return;
+
+  const totalPnl = trades.reduce((s,e)=>s+e.pnl,0);
+  const totalDiv = trades.reduce((s,e)=>s+(e.dividends||0),0);
+  const totalTax = trades.reduce((s,e)=>s+(e.tax||0),0);
+  const totalNet = trades.reduce((s,e)=>s+e.net,0);
+  const wins = trades.filter(e=>e.pnl>0).length;
+  const winRate = trades.length ? (wins/trades.length*100) : 0;
 
   statsEl.innerHTML = `
-    <div class="jstat">Total Trades<b>${j.length}</b></div>
-    <div class="jstat">Closed<b>${closed.length}</b></div>
-    <div class="jstat">Win Rate<b style="color:${closed.length?(winRate>=50?'var(--green)':'var(--red)'):'#f1f5f9'}">${closed.length?winRate.toFixed(0)+'%':'—'}</b></div>
-    <div class="jstat">Total P/L<b style="color:${closed.length?(totalPnl>=0?'var(--green)':'var(--red)'):'#f1f5f9'}">${closed.length?(totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2):'—'}</b></div>
+    <div class="jstat">Trades Closed<b>${trades.length}</b></div>
+    <div class="jstat">Win Rate<b style="color:${trades.length?(winRate>=50?'var(--green)':'var(--red)'):'#f1f5f9'}">${trades.length?winRate.toFixed(0)+'%':'—'}</b></div>
+    <div class="jstat">Total P/L<b style="color:${trades.length?(totalPnl>=0?'var(--green)':'var(--red)'):'#f1f5f9'}">${trades.length?(totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2):'—'}</b></div>
+    <div class="jstat">Total Dividends<b style="color:#f1f5f9">$${totalDiv.toFixed(2)}</b></div>
+    <div class="jstat">Total Tax Due<b style="color:var(--gold)">$${totalTax.toFixed(2)}</b></div>
+    <div class="jstat">Total Net<b style="color:${trades.length?(totalNet>=0?'var(--green)':'var(--red)'):'#f1f5f9'}">${trades.length?(totalNet>=0?'+':'')+'$'+totalNet.toFixed(2):'—'}</b></div>
   `;
 
-  if(j.length===0){
-    tableEl.innerHTML = '<tr><td style="padding:20px;text-align:center;color:var(--muted)">No trades logged yet — add your first one above.</td></tr>';
+  if(trades.length===0){
+    tableEl.innerHTML = '<tr><td style="padding:20px;text-align:center;color:var(--muted)">No closed trades yet — close an open position above to log it here.</td></tr>';
     return;
   }
   tableEl.innerHTML = `
-    <tr><th>Date</th><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Shares</th><th>P/L</th><th>Notes</th><th></th></tr>
-    ${j.map(e=>`
+    <tr><th>Closed</th><th>Symbol</th><th>Shares</th><th>Entry</th><th>Exit</th><th>P/L</th><th>P/L %</th><th>Dividends</th><th>Tax Due</th><th>Net</th><th>Notes</th><th></th></tr>
+    ${trades.map(e=>{
+      const pnlPct = ((e.exitPrice - e.entryPrice)/e.entryPrice*100);
+      return `
       <tr>
-        <td>${e.date}</td>
-        <td><b>${e.symbol}</b></td>
-        <td>${e.direction}</td>
-        <td>$${e.entry.toFixed(2)}</td>
-        <td>${e.exit!=null ? '$'+e.exit.toFixed(2) : '<span style="color:var(--muted)">open</span>'}</td>
+        <td>${e.closedDate}</td>
+        <td><b>${e.ticker}</b></td>
         <td>${e.shares}</td>
-        <td class="${e.pnl==null?'':(e.pnl>=0?'pnl-pos':'pnl-neg')}">${e.pnl==null?'—':(e.pnl>=0?'+':'')+'$'+e.pnl.toFixed(2)}</td>
+        <td>$${e.entryPrice.toFixed(2)}</td>
+        <td>$${e.exitPrice.toFixed(2)}</td>
+        <td class="${e.pnl>=0?'pnl-pos':'pnl-neg'}">${e.pnl>=0?'+':''}$${e.pnl.toFixed(2)}</td>
+        <td class="${pnlPct>=0?'pnl-pos':'pnl-neg'}">${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%</td>
+        <td>$${(e.dividends||0).toFixed(2)}</td>
+        <td style="color:var(--gold)">$${(e.tax||0).toFixed(2)}</td>
+        <td class="${e.net>=0?'pnl-pos':'pnl-neg'}">${e.net>=0?'+':''}$${e.net.toFixed(2)}</td>
         <td class="jnotes">${e.notes ? e.notes.replace(/</g,'&lt;') : ''}</td>
-        <td><button class="jdel" onclick="deleteJournalEntry(${e.id})" type="button">✕</button></td>
-      </tr>
-    `).join('')}
+        <td><button class="jdel" onclick="deleteClosedTrade(${e.id})" type="button">✕</button></td>
+      </tr>`;
+    }).join('')}
   `;
+}
+
+function deleteClosedTrade(id){
+  saveClosedTrades(loadClosedTrades().filter(e=>e.id!==id));
+  renderClosedTrades();
 }
 
 // ── Breakout price alerts ───────────────────────────────────────────────
@@ -1884,8 +2241,12 @@ function init(){
   mountMarketOverview();
   renderPinList();
   recalcPosition();
-  renderJournal();
   renderManualAlerts();
+  document.getElementById('taxRateInput').value = loadTaxRate();
+  migrateOldJournalOnce();
+  renderPositions();
+  renderClosedTrades();
+  startPositionPricePolling();
   initPushButtonState();
   initEmailAlertState();
   initHotlistEmailState();
