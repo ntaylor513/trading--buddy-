@@ -199,6 +199,11 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 .hotlist-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .hotlist-asof{font-size:11px;color:var(--muted)}
 .hotlist-refresh{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer}
+
+/* ── Trade Log print / download ── */
+.journal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.journal-action-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+.journal-action-btn:hover{border-color:#3b4568;color:#f1f5f9}
 .hotlist-empty{background:var(--card);border:1.5px dashed var(--border);border-radius:16px;padding:20px;color:var(--muted);font-size:13px;text-align:center}
 .hotlist-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .hot-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:14px;cursor:pointer}
@@ -474,10 +479,14 @@ footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;line-hei
 
   <div class="section-label">Trade Log — Closed Positions, Running P/L &amp; Tax Totals</div>
   <div class="journal-card">
+    <div class="journal-actions">
+      <button type="button" class="journal-action-btn" onclick="downloadTradeLogCSV()">⬇ Download CSV</button>
+      <button type="button" class="journal-action-btn" onclick="printTradeLog()">🖨️ Print</button>
+    </div>
     <div class="journal-stats" id="journalStats"></div>
     <div class="journal-table-wrap"><table class="journal-table" id="journalTable"></table></div>
   </div>
-  <div class="section-note">Tax due is estimated as your tax rate × profit on winning trades only (losses show $0 tax due here — this is a simple planning estimate, not tax advice; capital losses can offset gains on your actual return in ways this tool doesn't model, so always confirm with your broker's 1099 and a tax professional). Net = P/L + dividends collected − tax due. Stored only in this browser (localStorage) — export/screenshot anything you want to keep long-term.</div>
+  <div class="section-note">Tax due is estimated as your tax rate × profit on winning trades only (losses show $0 tax due here — this is a simple planning estimate, not tax advice; capital losses can offset gains on your actual return in ways this tool doesn't model, so always confirm with your broker's 1099 and a tax professional). Net = P/L + dividends collected − tax due. Stored only in this browser (localStorage) — export/screenshot anything you want to keep long-term. Use "Download CSV" or "Print" above to keep a copy outside the browser.</div>
 </main>
 
 <footer>
@@ -1635,6 +1644,98 @@ function deleteClosedTrade(id){
   renderClosedTrades();
 }
 
+// ── Trade Log: download as CSV / print ──────────────────────────────────
+// Both read straight from localStorage so they always reflect what's on
+// screen, including trades added/edited/deleted moments ago.
+function csvCell(v){
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function tradeLogRows(){
+  return loadClosedTrades().sort((a,b)=> (a.closedDate||'').localeCompare(b.closedDate||'') || a.id-b.id);
+}
+function downloadTradeLogCSV(){
+  const trades = tradeLogRows();
+  if(trades.length === 0){ alert('No closed trades yet — nothing to download.'); return; }
+
+  const header = ['Date Closed','Ticker','Shares','Entry $','Exit $','P/L $','P/L %','Dividends $','Tax Due $','Net $','Notes'];
+  const rows = trades.map(e=>{
+    const pnlPct = ((e.exitPrice - e.entryPrice)/e.entryPrice*100);
+    return [
+      e.closedDate, e.ticker, e.shares, e.entryPrice.toFixed(2), e.exitPrice.toFixed(2),
+      e.pnl.toFixed(2), pnlPct.toFixed(2), (e.dividends||0).toFixed(2), (e.tax||0).toFixed(2),
+      e.net.toFixed(2), e.notes || '',
+    ].map(csvCell).join(',');
+  });
+  const totalsRow = [
+    'TOTAL','','','','',
+    trades.reduce((s,e)=>s+e.pnl,0).toFixed(2), '',
+    trades.reduce((s,e)=>s+(e.dividends||0),0).toFixed(2),
+    trades.reduce((s,e)=>s+(e.tax||0),0).toFixed(2),
+    trades.reduce((s,e)=>s+e.net,0).toFixed(2), '',
+  ].map(csvCell).join(',');
+
+  const csv = [header.join(','), ...rows, totalsRow].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `trading-buddy-trade-log-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Opens a separate, plain light-on-white printable page (rather than
+// relying on @media print over the app's own dark theme) so it reads
+// cleanly on paper and doesn't waste ink. Pulls the SAME stats/table
+// markup already on screen, just re-themed for print.
+function printTradeLog(){
+  if(tradeLogRows().length === 0){ alert('No closed trades yet — nothing to print.'); return; }
+
+  const statsHtml = document.getElementById('journalStats').innerHTML;
+  const tableHtml = document.getElementById('journalTable').outerHTML;
+  const taxRate = loadTaxRate();
+
+  const win = window.open('', '_blank');
+  if(!win){ alert('Your browser blocked the print window — allow pop-ups for this site and try again.'); return; }
+
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Trading Buddy — Trade Log</title>
+<style>
+  :root{ --green:#15803d; --red:#b91c1c; --gold:#92400e; --muted:#555; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;background:#fff;padding:28px;margin:0}
+  h1{font-size:19px;margin:0 0 4px}
+  .meta{font-size:11.5px;color:#555;margin-bottom:18px}
+  .journal-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .jstat{border:1px solid #ccc;border-radius:8px;padding:8px 12px;font-size:11px;color:#555}
+  .jstat b{display:block;font-size:14px;margin-top:2px;color:#111;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th,td{border-bottom:1px solid #ddd;padding:6px 8px;text-align:left;white-space:nowrap}
+  th{text-transform:uppercase;font-size:9.5px;color:#555;font-weight:800}
+  .pnl-pos{color:var(--green);font-weight:700}
+  .pnl-neg{color:var(--red);font-weight:700}
+  .jnotes{white-space:normal;color:#333}
+  .jdel,button{display:none}
+  footer{margin-top:16px;font-size:10.5px;color:#777}
+  @media print{ body{padding:0} }
+</style></head>
+<body>
+  <h1>Trading Buddy — Trade Log</h1>
+  <div class="meta">Printed ${new Date().toLocaleString()} &middot; Flat tax rate used: ${taxRate}%</div>
+  <div class="journal-stats">${statsHtml}</div>
+  ${tableHtml}
+  <footer>Tax due is a flat-rate estimate on winning trades only — not tax advice. Generated by Trading Buddy, stored only in this browser.</footer>
+</body></html>`);
+  win.document.close();
+  win.focus();
+  // Small delay lets the new document finish laying out before the print
+  // dialog opens, so column widths/wrapping are settled first.
+  setTimeout(()=>{ win.print(); }, 300);
+}
+
 // ── Breakout price alerts ───────────────────────────────────────────────
 // Watches real prices (via the /api/quote Netlify function, which proxies
 // Finnhub so the API key never reaches the browser) against a trigger
@@ -2258,3 +2359,4 @@ init();
 </script>
 </body>
 </html>
+
